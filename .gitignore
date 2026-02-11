@@ -31,3 +31,7 @@ be/uploads/
 be/*.db
 # Secrets
 .env
+.env.prod
+
+# Misc
+Hostinger VPS.txt
