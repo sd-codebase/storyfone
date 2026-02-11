@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <circle cx="32" cy="32" r="30" fill="#1A1A1A"/>
+  <polyline points="6,32 16,32 20,18 24,46 28,24 32,40 36,28 40,36 44,30 48,32 58,32" stroke="#CC3333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="32" cy="32" r="4" fill="#CC3333" opacity="0.3">
+    <animate attributeName="r" values="4;8;4" dur="1.5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0;0.3" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="32" cy="32" r="3" fill="#E85555"/>
+</svg>

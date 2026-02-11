@@ -1,0 +1,26 @@
+services:
+  backend:
+    build:
+      context: ./be
+      target: dev
+    ports:
+      - "9000:8000"
+    volumes:
+      - ./be:/app
+    env_file: .env
+    environment:
+      - CORS_ORIGINS=http://localhost:9001
+
+  frontend:
+    build:
+      context: ./ui
+      target: dev
+    ports:
+      - "9001:5173"
+    volumes:
+      - ./ui:/app
+      - /app/node_modules
+    environment:
+      - API_PROXY_TARGET=http://backend:8000
+    depends_on:
+      - backend

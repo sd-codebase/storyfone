@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <circle cx="32" cy="32" r="30" fill="#1A1A1A"/>
+  <!-- Magnifying glass -->
+  <circle cx="28" cy="28" r="12" fill="none" stroke="#CC3333" stroke-width="3"/>
+  <line x1="37" y1="37" x2="50" y2="50" stroke="#CC3333" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- Lens shine -->
+  <path d="M22 22 C24 18 30 17 34 20" fill="none" stroke="#E85555" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- Evidence dots inside lens -->
+  <circle cx="26" cy="30" r="1.5" fill="#991B1B"/>
+  <circle cx="30" cy="26" r="1.5" fill="#991B1B"/>
+  <circle cx="28" cy="32" r="1" fill="#E85555"/>
+  <!-- Crosshair in lens -->
+  <line x1="28" y1="20" x2="28" y2="36" stroke="#991B1B" stroke-width="0.8" stroke-dasharray="2 2"/>
+  <line x1="20" y1="28" x2="36" y2="28" stroke="#991B1B" stroke-width="0.8" stroke-dasharray="2 2"/>
+</svg>

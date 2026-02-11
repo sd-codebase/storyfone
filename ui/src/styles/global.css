@@ -1,0 +1,79 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #141414;
+  color: #e6e6e6;
+}
+
+/* Scene element card */
+.scene-element-card {
+  margin-bottom: 8px;
+  transition: box-shadow 0.2s;
+}
+.scene-element-card:hover {
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.06);
+}
+
+/* Drag handle */
+.drag-handle {
+  cursor: grab;
+  color: #666;
+  padding: 4px 8px;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Steps header */
+.app-steps {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Scene nav item */
+.scene-nav-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  transition: background 0.2s;
+}
+.scene-nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.scene-nav-item.active {
+  background: rgba(22, 104, 220, 0.2);
+  border-left: 3px solid #1668dc;
+}
+
+/* JSON preview drawer */
+.json-preview pre {
+  background: #0d0d0d;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.5;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+::-webkit-scrollbar-thumb {
+  background: #424242;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
