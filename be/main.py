@@ -4,9 +4,9 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from config import CORS_ORIGINS, UPLOADS_DIR
+from config import CORS_ORIGINS, IS_DEV, UPLOADS_DIR
 from db import init_db
-from routers import admin, audio_library, auth, books, chapters, dialogue, projects, scene_mix, upload
+from routers import admin, audio_library, auth, books, chapters, dialogue, mobile, projects, scene_mix, upload
 from services.auth import get_current_user
 
 # Ensure public CDN directory exists before StaticFiles instantiation
@@ -30,8 +30,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Auth router — no auth required
+# Auth routers — no auth required
 app.include_router(auth.router)
+app.include_router(mobile.auth_router)
 
 # Protected routers — require valid JWT
 protected = [Depends(get_current_user)]
@@ -48,6 +49,17 @@ app.include_router(admin.otp_router, dependencies=protected)
 app.include_router(books.router, dependencies=protected)
 app.include_router(chapters.router, dependencies=protected)
 app.include_router(upload.router, dependencies=protected)
+
+# Mobile app protected routes (JWT = user_id)
+app.include_router(mobile.protected_router)
+
+# Admin trending & editor picks
+app.include_router(mobile.admin_trending_router, dependencies=protected)
+
+# Dev-only seed routes (no auth, only registered when running against localhost)
+if IS_DEV:
+    from routers import dev_seed
+    app.include_router(dev_seed.router)
 
 # Static CDN mount — no auth, placed after routers so API routes take priority
 app.mount("/cdn", StaticFiles(directory=str(_cdn_dir)), name="cdn")

@@ -24,8 +24,31 @@ async def init_db() -> None:
     await database.authors.create_index("name")
     await database.narrators.create_index("name")
     await database.users.create_index("whatsapp_number", unique=True)
+    await database.users.create_index("whatsapp_hash", sparse=True)
     # Books & Chapters
     await database.books.create_index("title")
     await database.books.create_index("is_published")
     await database.chapters.create_index("book_id")
     await database.chapters.create_index([("book_id", 1), ("created_at", 1)])
+    # Mobile: user library (likes + progress)
+    await database.user_library.create_index(
+        [("user_id", 1), ("book_id", 1)], unique=True
+    )
+    await database.user_library.create_index("user_id")
+    # Books: tags index
+    await database.books.create_index("tags")
+    await database.books.create_index("language")
+    # Trending lists: one per language
+    await database.trending_lists.create_index("language", unique=True)
+    # Editor picks: one per language
+    await database.editor_picks.create_index("language", unique=True)
+    # Ratings: one per user per book
+    await database.ratings.create_index(
+        [("user_id", 1), ("book_id", 1)], unique=True
+    )
+    # Reports: one per user per book
+    await database.reports.create_index(
+        [("user_id", 1), ("book_id", 1)], unique=True
+    )
+    # User stats
+    await database.user_stats.create_index("user_id", unique=True)

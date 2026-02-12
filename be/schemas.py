@@ -282,6 +282,134 @@ class GenerateOtpResponse(BaseModel):
     whatsapp_url: str
 
 
+# --- Mobile App: Auth ---
+
+class AppRegisterRequest(BaseModel):
+    whatsapp_number: str
+    country_code: str
+    birthdate: str  # "YYYY-MM-DD"
+    pin: str
+    name: str = ""
+    preferred_languages: Optional[List[str]] = None
+
+
+class AppLoginRequest(BaseModel):
+    whatsapp_number: str
+    country_code: str
+    pin: str
+
+
+class AppUserOut(BaseModel):
+    id: str
+    name: str
+    whatsapp_number: str
+    country_code: str
+    birthdate: str
+    is_adult: bool
+    is_verified: bool
+    plan: str
+    status: str
+    preferred_languages: List[str] = []
+    created_at: str
+
+
+class AppAuthResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: AppUserOut
+
+
+class AppUserUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    preferred_languages: Optional[List[str]] = None
+
+
+# --- Mobile App: PIN ---
+
+class PinCreateRequest(BaseModel):
+    pin: str
+
+
+class PinVerifyRequest(BaseModel):
+    pin: str
+
+
+class PinVerifyResponse(BaseModel):
+    valid: bool
+
+
+class PinExistsResponse(BaseModel):
+    has_pin: bool
+
+
+# --- Mobile App: Books ---
+
+class AppBookOut(BaseModel):
+    id: str
+    title: str
+    authors: List[str]
+    genres: List[str]
+    description: str
+    is_adult: bool
+    language: Optional[str] = None
+    tags: List[str] = []
+    thumbnail_url: Optional[str] = None
+    chapter_count: int = 0
+    listen_count: int = 0
+    average_rating: float = 0
+    rating_count: int = 0
+    created_at: str
+
+
+class AppBookListResponse(BaseModel):
+    books: List[AppBookOut]
+    total: int
+
+
+class AppChapterOut(BaseModel):
+    id: str
+    name: str
+    book_id: str
+    audio_hls: Optional[str] = None
+    order: int = 0
+    created_at: str
+
+
+class AppGenreOut(BaseModel):
+    id: str
+    name: str
+    icon: str
+    is_adult: bool
+
+
+# --- Mobile App: Library ---
+
+class ToggleLikeResponse(BaseModel):
+    liked: bool
+
+
+class LikedBooksResponse(BaseModel):
+    book_ids: List[str]
+
+
+class ProgressSaveRequest(BaseModel):
+    chapter_index: int
+    position: float
+    percent: float
+
+
+class ProgressEntry(BaseModel):
+    book_id: str
+    chapter_index: int
+    position: float
+    percent: float
+    last_played: str
+
+
+class ProgressListResponse(BaseModel):
+    progress: List[ProgressEntry]
+
+
 # --- Admin: Books ---
 
 class BookOut(BaseModel):
@@ -315,3 +443,68 @@ class ChapterOut(BaseModel):
     audio_hls: Optional[str]
     created_at: str
     updated_at: str
+
+
+# --- Admin: Trending ---
+
+class TrendingSetRequest(BaseModel):
+    book_ids: List[str]
+
+
+class TrendingOut(BaseModel):
+    language: str
+    language_name: str
+    book_ids: List[str]
+    updated_at: str
+
+
+# --- Admin: Editor Picks ---
+
+class EditorPickSetRequest(BaseModel):
+    book_id_sfw: str
+    book_id_adult: Optional[str] = None
+
+
+class EditorPickOut(BaseModel):
+    language: str
+    language_name: str
+    book_id_sfw: str
+    book_id_adult: Optional[str] = None
+    updated_at: str
+
+
+# --- Mobile App: Rating ---
+
+class RateBookRequest(BaseModel):
+    rating: int  # 1-5
+
+
+class BookRatingOut(BaseModel):
+    user_rating: Optional[int] = None
+    average: float = 0
+    count: int = 0
+
+
+# --- Mobile App: Report ---
+
+class ReportBookRequest(BaseModel):
+    reason: str
+
+
+# --- Mobile App: User Stats ---
+
+class UserStatsOut(BaseModel):
+    total_hours: float = 0
+    unique_books: int = 0
+    streak_days: int = 0
+
+
+# --- Mobile App: WhatsApp Change ---
+
+class ChangeWhatsappRequest(BaseModel):
+    new_whatsapp_number: str
+    new_country_code: str
+
+
+class VerifyWhatsappRequest(BaseModel):
+    otp: str

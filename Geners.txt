@@ -1,0 +1,198 @@
+Geners
+[
+    {
+        "id": "8lB85bsPrsD0GBOveA8MO",
+        "name": "Romance",
+        "icon": "",
+        "is_adult": false,
+        "created_at": "2026-02-11T15:00:20.621060+00:00",
+        "updated_at": "2026-02-11T15:00:20.621060+00:00"
+    },
+    {
+        "id": "KynFZ9DhPDD8OHl7KZEI4",
+        "name": "Horror",
+        "icon": "",
+        "is_adult": true,
+        "created_at": "2026-02-11T15:00:04.311242+00:00",
+        "updated_at": "2026-02-11T15:00:04.311242+00:00"
+    },
+    {
+        "id": "5_e0wOqHgo0WcNwI26_Xd",
+        "name": "Mystery",
+        "icon": "",
+        "is_adult": false,
+        "created_at": "2026-02-11T14:59:52.080971+00:00",
+        "updated_at": "2026-02-11T14:59:52.080971+00:00"
+    },
+    {
+        "id": "KWrnyl5Izhfhx3VNtdv7G",
+        "name": "Erotica",
+        "icon": "",
+        "is_adult": true,
+        "created_at": "2026-02-11T14:59:25.897904+00:00",
+        "updated_at": "2026-02-11T14:59:25.897904+00:00"
+    },
+    {
+        "id": "6UkhYQFuCDjZ9n574MNXq",
+        "name": "Court Drama",
+        "icon": "",
+        "is_adult": false,
+        "created_at": "2026-02-11T14:59:12.005896+00:00",
+        "updated_at": "2026-02-11T14:59:12.005896+00:00"
+    },
+    {
+        "id": "9wdmEdi-7Njaqk091R41u",
+        "name": "Crime",
+        "icon": "",
+        "is_adult": true,
+        "created_at": "2026-02-11T14:58:55.144255+00:00",
+        "updated_at": "2026-02-11T14:58:55.144255+00:00"
+    },
+    {
+        "id": "5IWtsdPh_ZgblL2-ZFfrs",
+        "name": "Thriller",
+        "icon": "",
+        "is_adult": false,
+        "created_at": "2026-02-11T14:58:42.479822+00:00",
+        "updated_at": "2026-02-11T14:58:42.479822+00:00"
+    },
+    {
+        "id": "33UXUZFRZPV7-hKaI6YPw",
+        "name": "Investigation",
+        "icon": "",
+        "is_adult": false,
+        "created_at": "2026-02-11T14:58:14.918407+00:00",
+        "updated_at": "2026-02-11T14:58:14.918407+00:00"
+    },
+    {
+        "id": "MrTg-CaT93I4RZ9USZR_K",
+        "name": "Suspense",
+        "icon": "",
+        "is_adult": false,
+        "created_at": "2026-02-11T14:57:56.331152+00:00",
+        "updated_at": "2026-02-11T14:57:56.331152+00:00"
+    }
+]
+
+Languages
+[
+    {
+        "id": "ddoQ14kZ0n1cZFOXC8wxT",
+        "name": "हिंदी",
+        "created_at": "2026-02-11T14:33:20.122359+00:00",
+        "updated_at": "2026-02-11T14:33:20.122359+00:00"
+    },
+    {
+        "id": "fOAR6nDPFKrLgzx424VU2",
+        "name": "मराठी",
+        "created_at": "2026-02-11T14:33:00.250360+00:00",
+        "updated_at": "2026-02-11T14:33:00.250360+00:00"
+    }
+]
+
+Authors
+[
+    {
+        "id": "4PC2sETYrgPGCMS2rQB9F",
+        "name": "Suraj",
+        "bio": null,
+        "created_at": "2026-02-11T15:54:43.158483+00:00",
+        "updated_at": "2026-02-11T15:55:09.594736+00:00"
+    },
+    {
+        "id": "1N0rWs9oWiOKwBOz1dyIa",
+        "name": "Krishna",
+        "bio": null,
+        "created_at": "2026-02-11T15:03:56.743709+00:00",
+        "updated_at": "2026-02-11T15:03:56.743709+00:00"
+    }
+]
+
+Narrators
+[
+    {
+        "id": "pPrwzaZvbTzLqQrnuie0p",
+        "name": "Sumit",
+        "bio": null,
+        "created_at": "2026-02-11T15:54:54.626739+00:00",
+        "updated_at": "2026-02-11T15:54:54.626739+00:00"
+    },
+    {
+        "id": "XS9SpB2_UziwQeYZFiviZ",
+        "name": "Krishna",
+        "bio": null,
+        "created_at": "2026-02-11T15:04:07.640468+00:00",
+        "updated_at": "2026-02-11T15:04:07.640468+00:00"
+    }
+]
+
+
+Books:
+[
+    {
+        "id": "698cb5793fd5a0617cbb83a0",
+        "title": "kadas",
+        "authors": [
+            "4PC2sETYrgPGCMS2rQB9F"
+        ],
+        "narrators": [
+            "pPrwzaZvbTzLqQrnuie0p"
+        ],
+        "language": "fOAR6nDPFKrLgzx424VU2",
+        "genres": [
+            "KWrnyl5Izhfhx3VNtdv7G"
+        ],
+        "description": "sdfsdfsdfds",
+        "is_published": true,
+        "is_adult": true,
+        "thumbnail_url": "/cdn/thumbnails/books/b211c3845c2c4056-upload_thumb.jpeg",
+        "preview_audio_raw": "raw/books/2f8bb34a47ac4b83-upload_preview.wav",
+        "preview_audio_hls": "/cdn/hls/books/698cb5793fd5a0617cbb83a0-kadas/playlist.m3u8",
+        "audio_status": "processed",
+        "created_at": "2026-02-11T16:59:37.948867+00:00",
+        "updated_at": "2026-02-11T17:01:44.614716+00:00"
+    },
+    {
+        "id": "698cabff3fd5a0617cbb839e",
+        "title": "dsgsdfsd",
+        "authors": [
+            "1N0rWs9oWiOKwBOz1dyIa",
+            "4PC2sETYrgPGCMS2rQB9F"
+        ],
+        "narrators": [
+            "pPrwzaZvbTzLqQrnuie0p",
+            "XS9SpB2_UziwQeYZFiviZ"
+        ],
+        "language": "ddoQ14kZ0n1cZFOXC8wxT",
+        "genres": [
+            "KynFZ9DhPDD8OHl7KZEI4",
+            "8lB85bsPrsD0GBOveA8MO"
+        ],
+        "description": "",
+        "is_published": true,
+        "is_adult": true,
+        "thumbnail_url": "/cdn/thumbnails/books/195129387bd34887-upload_thumb.webp",
+        "preview_audio_raw": "raw/books/0d3fd538ded34f95-upload_preview.wav",
+        "preview_audio_hls": "/cdn/hls/books/698cabff3fd5a0617cbb839e-dsgsdfsd/playlist.m3u8",
+        "audio_status": "processed",
+        "created_at": "2026-02-11T16:19:11.807293+00:00",
+        "updated_at": "2026-02-11T16:27:43.980009+00:00"
+    }
+]
+
+
+chapters
+[
+    {
+        "id": "698cb5bb3fd5a0617cbb83a1",
+        "name": "CH1",
+        "book_id": "698cb5793fd5a0617cbb83a0",
+        "status": "processed",
+        "is_published": true,
+        "thumbnail_url": "/cdn/thumbnails/chapters/0a6fea0825eb4ec9-upload_thumb.jpeg",
+        "audio_raw": "raw/chapters/5b4a1786ab314be2-upload_audio.wav",
+        "audio_hls": "/cdn/hls/chapters/698cb5bb3fd5a0617cbb83a1-ch1/playlist.m3u8",
+        "created_at": "2026-02-11T17:00:43.566168+00:00",
+        "updated_at": "2026-02-11T17:01:17.289179+00:00"
+    }
+]

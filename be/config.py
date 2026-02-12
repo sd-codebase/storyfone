@@ -20,3 +20,8 @@ ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "")
 JWT_SECRET: str = os.getenv("JWT_SECRET", "")
 JWT_EXPIRE_DAYS: int = int(os.getenv("JWT_EXPIRE_DAYS", "30"))
+
+ENCRYPTION_KEY: str = os.getenv("ENCRYPTION_KEY", "")
+
+ENV: str = os.getenv("ENV", "development")
+IS_DEV: bool = ENV == "development"
