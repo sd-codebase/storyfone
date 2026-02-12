@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert, Linking, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -8,7 +8,10 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/themeStore';
 import { StoryfoneIcon } from '../../icons';
-import { getUserStats, updateMe, deleteAccount } from '../../api/user';
+import { getUserStats, updateMe, deleteAccount, changeWhatsapp, verifyWhatsapp } from '../../api/user';
+import { GradientButton } from '../../components/ui/GradientButton';
+import { PhoneInput } from '../../components/ui/PhoneInput';
+import { PinInput } from '../../components/ui/PinInput';
 import { LEGAL_URLS } from '../../constants/api';
 
 export function ProfileScreen() {
@@ -20,6 +23,15 @@ export function ProfileScreen() {
   const [stats, setStats] = useState<{ total_hours: number; unique_books: number; streak_days: number } | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(user?.name || '');
+
+  // WhatsApp change flow
+  const [showWhatsappModal, setShowWhatsappModal] = useState(false);
+  const [whatsappStep, setWhatsappStep] = useState<'phone' | 'otp'>('phone');
+  const [newCountryCode, setNewCountryCode] = useState(user?.countryCode || '+91');
+  const [newPhone, setNewPhone] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '']);
+  const [waLoading, setWaLoading] = useState(false);
+  const [waError, setWaError] = useState('');
 
   useEffect(() => {
     getUserStats().then(setStats).catch(() => {});
@@ -34,6 +46,41 @@ export function ProfileScreen() {
       }
     } catch {}
     setEditingName(false);
+  };
+
+  const handleWhatsappChange = async () => {
+    if (newPhone.length < 7) { setWaError('Enter a valid phone number'); return; }
+    setWaLoading(true);
+    setWaError('');
+    try {
+      await changeWhatsapp(newPhone, newCountryCode);
+      setWhatsappStep('otp');
+    } catch {
+      setWaError('Failed to send OTP. Try again.');
+    } finally {
+      setWaLoading(false);
+    }
+  };
+
+  const handleWhatsappVerify = async () => {
+    const code = otp.join('');
+    if (code.length < 4) { setWaError('Enter the 4-digit OTP'); return; }
+    setWaLoading(true);
+    setWaError('');
+    try {
+      await verifyWhatsapp(code);
+      if (user) {
+        setUser({ ...user, whatsapp: newPhone, countryCode: newCountryCode, isVerified: true });
+      }
+      setShowWhatsappModal(false);
+      setWhatsappStep('phone');
+      setNewPhone('');
+      setOtp(['', '', '', '']);
+    } catch {
+      setWaError('Invalid OTP. Try again.');
+    } finally {
+      setWaLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -65,10 +112,11 @@ export function ProfileScreen() {
     );
   };
 
+  const isNewUser = stats && stats.total_hours === 0 && stats.unique_books === 0 && stats.streak_days === 0;
   const displayStats = [
-    { label: 'Hours', value: stats ? stats.total_hours.toFixed(1) : '—', icon: 'clock' as const },
-    { label: 'Stories', value: stats ? String(stats.unique_books) : '—', icon: 'book' as const },
-    { label: 'Streak', value: stats ? `${stats.streak_days}d` : '—', icon: 'trending-up' as const },
+    { label: 'Hours', value: stats ? (isNewUser ? 'Start listening!' : stats.total_hours.toFixed(1)) : '—', icon: 'clock' as const },
+    { label: 'Stories', value: stats ? (isNewUser ? 'Explore' : String(stats.unique_books)) : '—', icon: 'book' as const },
+    { label: 'Streak', value: stats ? (isNewUser ? 'Begin today!' : `${stats.streak_days}d`) : '—', icon: 'trending-up' as const },
   ];
 
   const settingsItems: { icon: React.ComponentProps<typeof Feather>['name']; label: string; onPress?: () => void }[] = [
@@ -142,7 +190,7 @@ export function ProfileScreen() {
             style={[styles.statCard, { backgroundColor: t.bgCard, borderColor: t.borderSubtle }]}
           >
             <Feather name={stat.icon} size={20} color={t.primary} />
-            <Text style={[styles.statValue, { color: t.text }]}>{stat.value}</Text>
+            <Text style={[styles.statValue, { color: t.text }, isNewUser && styles.statValueSmall]}>{stat.value}</Text>
             <Text style={[styles.statLabel, { color: t.textMuted }]}>{stat.label}</Text>
           </View>
         ))}
@@ -152,7 +200,17 @@ export function ProfileScreen() {
       <Text style={[styles.sectionTitle, { color: t.text }]}>ACCOUNT INFO</Text>
       <View style={[styles.infoCard, { backgroundColor: t.bgCard, borderColor: t.borderSubtle }]}>
         {/* WhatsApp */}
-        <View style={[styles.infoRow, { borderBottomColor: t.borderSubtle }]}>
+        <TouchableOpacity
+          style={[styles.infoRow, { borderBottomColor: t.borderSubtle }]}
+          activeOpacity={0.7}
+          onPress={() => {
+            setShowWhatsappModal(true);
+            setWhatsappStep('phone');
+            setNewPhone('');
+            setOtp(['', '', '', '']);
+            setWaError('');
+          }}
+        >
           <Feather name="smartphone" size={16} color={t.textSecondary} />
           <View style={styles.infoContent}>
             <Text style={[styles.infoLabel, { color: t.textMuted }]}>WHATSAPP</Text>
@@ -165,11 +223,18 @@ export function ProfileScreen() {
               </Text>
             </View>
           </View>
-          <View style={[styles.verifiedBadge, { backgroundColor: 'rgba(34,197,94,0.1)' }]}>
-            <Feather name="check" size={10} color="#22C55E" />
-            <Text style={styles.verifiedText}>Verified</Text>
-          </View>
-        </View>
+          {user?.isVerified ? (
+            <View style={[styles.verifiedBadge, { backgroundColor: 'rgba(34,197,94,0.1)' }]}>
+              <Feather name="check" size={10} color="#22C55E" />
+              <Text style={styles.verifiedText}>Verified</Text>
+            </View>
+          ) : (
+            <View style={[styles.verifiedBadge, { backgroundColor: 'rgba(234,179,8,0.1)' }]}>
+              <Feather name="alert-circle" size={10} color="#EAB308" />
+              <Text style={[styles.verifiedText, { color: '#EAB308' }]}>Unverified</Text>
+            </View>
+          )}
+        </TouchableOpacity>
 
         {/* Date of Birth */}
         <View style={[styles.infoRow, { borderBottomColor: t.borderSubtle }]}>
@@ -229,6 +294,59 @@ export function ProfileScreen() {
         <StoryfoneIcon size={24} theme={t} />
         <Text style={[styles.footerText, { color: t.textMuted }]}>v{appVersion}</Text>
       </View>
+
+      {/* WhatsApp Change Modal */}
+      <Modal visible={showWhatsappModal} transparent animationType="fade">
+        <TouchableOpacity
+          style={styles.waOverlay}
+          onPress={() => setShowWhatsappModal(false)}
+          activeOpacity={1}
+        >
+          <View
+            style={[styles.waCard, { backgroundColor: t.bgElevated, borderColor: t.border }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <Text style={[styles.waTitle, { color: t.text }]}>
+              {whatsappStep === 'phone' ? 'Change WhatsApp Number' : 'Verify OTP'}
+            </Text>
+
+            {whatsappStep === 'phone' ? (
+              <>
+                <Text style={[styles.waSubtitle, { color: t.textMuted }]}>
+                  Enter your new WhatsApp number
+                </Text>
+                <PhoneInput
+                  countryCode={newCountryCode}
+                  phone={newPhone}
+                  onCountryCodeChange={setNewCountryCode}
+                  onPhoneChange={setNewPhone}
+                />
+                {!!waError && <Text style={styles.waError}>{waError}</Text>}
+                <GradientButton
+                  title="Send OTP"
+                  onPress={handleWhatsappChange}
+                  loading={waLoading}
+                  style={styles.waBtn}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={[styles.waSubtitle, { color: t.textMuted }]}>
+                  Enter the 4-digit code sent to {newCountryCode} {newPhone}
+                </Text>
+                <PinInput value={otp} onChange={setOtp} error={!!waError} />
+                {!!waError && <Text style={styles.waError}>{waError}</Text>}
+                <GradientButton
+                  title="Verify"
+                  onPress={handleWhatsappVerify}
+                  loading={waLoading}
+                  style={styles.waBtn}
+                />
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 }
@@ -254,6 +372,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: { fontSize: 22, fontWeight: '800', marginTop: 6, marginBottom: 2 },
+  statValueSmall: { fontSize: 12 },
   statLabel: { fontSize: 11 },
   sectionTitle: {
     fontSize: 14,
@@ -314,4 +433,20 @@ const styles = StyleSheet.create({
   deleteText: { fontSize: 12, color: '#FF4444' },
   footer: { alignItems: 'center', marginTop: 24, gap: 8 },
   footerText: { fontSize: 11 },
+  waOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  waCard: {
+    width: 300,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 24,
+  },
+  waTitle: { fontSize: 18, fontWeight: '700', marginBottom: 4, textAlign: 'center' },
+  waSubtitle: { fontSize: 13, marginBottom: 20, textAlign: 'center' },
+  waError: { fontSize: 12, color: '#FF4444', textAlign: 'center', marginTop: 8 },
+  waBtn: { width: '100%', marginTop: 16 },
 });

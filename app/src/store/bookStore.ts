@@ -22,6 +22,7 @@ function mapApiBook(b: ApiBookOut, genreMap: Record<string, string>): Book {
     genreNames,
     thumbnailUrl: b.thumbnail_url,
     rating: b.average_rating,
+    ratingCount: b.rating_count,
     duration: '',
     progress: 0,
     listeners: formatCount(b.listen_count),
@@ -29,6 +30,7 @@ function mapApiBook(b: ApiBookOut, genreMap: Record<string, string>): Book {
     chapters: b.chapter_count,
     currentChapter: 0,
     description: b.description,
+    tags: b.tags || [],
   };
 }
 
@@ -48,8 +50,11 @@ interface BookStore {
   page: number;
   hasMore: boolean;
   total: number;
+  searchResults: Book[];
+  isSearching: boolean;
   setCategory: (category: string) => void;
   setSearchQuery: (query: string) => void;
+  searchBooks: (query: string, languages?: string) => Promise<void>;
   fetchBooks: (languages?: string) => Promise<void>;
   fetchMoreBooks: (languages?: string) => Promise<void>;
   fetchTrending: (languages?: string) => Promise<void>;
@@ -73,8 +78,22 @@ export const useBookStore = create<BookStore>()((set, get) => ({
   page: 0,
   hasMore: true,
   total: 0,
+  searchResults: [],
+  isSearching: false,
   setCategory: (category) => set({ selectedCategory: category }),
-  setSearchQuery: (query) => set({ searchQuery: query }),
+  setSearchQuery: (query) => set({ searchQuery: query, ...(query ? { selectedCategory: 'All' } : {}) }),
+  searchBooks: async (query, languages) => {
+    set({ isSearching: true });
+    try {
+      const { genres } = get();
+      const genreMap: Record<string, string> = {};
+      for (const g of genres) genreMap[g.id] = g.name;
+      const res = await booksApi.listBooks({ search: query, languages, limit: 50 });
+      set({ searchResults: res.books.map((b) => mapApiBook(b, genreMap)), isSearching: false });
+    } catch {
+      set({ isSearching: false });
+    }
+  },
   fetchBooks: async (languages) => {
     set({ isLoading: true, page: 0, hasMore: true });
     try {

@@ -7,24 +7,28 @@ import TrackPlayer, {
   useTrackPlayerEvents,
 } from 'react-native-track-player';
 import { usePlayerStore } from '../store/playerStore';
+import { useLibraryStore } from '../store/libraryStore';
 import { recordListenTime } from '../api/user';
 import { recordListen } from '../api/books';
 
 const LISTEN_TIME_INTERVAL = 30_000; // 30 seconds
+const PROGRESS_SAVE_INTERVAL = 5_000; // save local progress every 5s
 
 /**
  * Mounted at App root — syncs TrackPlayer state → Zustand store.
- * Also tracks listen time and records listen counts.
+ * Also tracks listen time, records listen counts, and persists listening progress.
  */
 export function useTrackPlayerSync() {
   const { state: playbackState } = usePlaybackState();
   const { position, duration } = useProgress(500);
 
   const accumulatedTime = useRef(0);
+  const totalListenTime = useRef(0);
   const lastPosition = useRef(0);
   const listenRecordedForBook = useRef<string | null>(null);
+  const lastProgressSave = useRef(0);
 
-  // Sync progress
+  // Sync progress + persist to libraryStore
   useEffect(() => {
     if (position >= 0) {
       usePlayerStore.getState().setCurrentTime(position);
@@ -33,8 +37,32 @@ export function useTrackPlayerSync() {
       const delta = position - lastPosition.current;
       if (delta > 0 && delta < 2) {
         accumulatedTime.current += delta;
+        totalListenTime.current += delta;
       }
       lastPosition.current = position;
+
+      // Enable rating after 60 seconds (position or accumulated time)
+      if ((position >= 60 || totalListenTime.current >= 60) && !usePlayerStore.getState().canRate) {
+        usePlayerStore.getState().setCanRate(true);
+      }
+
+      // Periodically save listening progress to libraryStore
+      const now = Date.now();
+      if (now - lastProgressSave.current > PROGRESS_SAVE_INTERVAL) {
+        const { currentBook, currentChapterIndex, duration: dur } = usePlayerStore.getState();
+        if (currentBook && dur > 0) {
+          const chapterPercent = position / dur;
+          const totalChapters = currentBook.chapters || 1;
+          const overallPercent = (currentChapterIndex + chapterPercent) / totalChapters;
+          useLibraryStore.getState().updateProgress(currentBook.id, {
+            chapterIndex: currentChapterIndex,
+            position,
+            percent: Math.min(overallPercent, 1),
+            lastPlayed: new Date().toISOString(),
+          });
+          lastProgressSave.current = now;
+        }
+      }
     }
   }, [position]);
 
@@ -57,7 +85,7 @@ export function useTrackPlayerSync() {
     }
   }, [playbackState]);
 
-  // Periodic listen time saving (every 30s)
+  // Periodic listen time saving to server (every 30s)
   useEffect(() => {
     const interval = setInterval(() => {
       const seconds = Math.floor(accumulatedTime.current);
@@ -90,13 +118,23 @@ export function useTrackPlayerSync() {
     }
   });
 
-  // Handle queue ended — flush remaining listen time
+  // Handle queue ended — flush remaining listen time + save final progress
   useTrackPlayerEvents([Event.PlaybackQueueEnded], () => {
     const seconds = Math.floor(accumulatedTime.current);
-    const bookId = usePlayerStore.getState().currentBook?.id;
+    const { currentBook, currentChapterIndex } = usePlayerStore.getState();
+    const bookId = currentBook?.id;
     if (seconds > 0 && bookId) {
       recordListenTime(seconds, bookId).catch(() => {});
       accumulatedTime.current = 0;
+    }
+    // Save 100% progress on queue end
+    if (currentBook) {
+      useLibraryStore.getState().updateProgress(currentBook.id, {
+        chapterIndex: currentChapterIndex,
+        position: 0,
+        percent: 1,
+        lastPlayed: new Date().toISOString(),
+      });
     }
     usePlayerStore.getState().setIsPlaying(false);
   });
@@ -113,10 +151,30 @@ export function useTrackPlayerSync() {
           recordListenTime(seconds, prevBookIdRef.current).catch(() => {});
         }
         accumulatedTime.current = 0;
+        totalListenTime.current = 0;
         lastPosition.current = 0;
+        lastProgressSave.current = 0;
         prevBookIdRef.current = bookId;
       }
     });
     return unsub;
   }, []);
+
+  // Save progress on pause
+  useEffect(() => {
+    if (playbackState === State.Paused) {
+      const { currentBook, currentChapterIndex, duration: dur, currentTime } = usePlayerStore.getState();
+      if (currentBook && dur > 0) {
+        const chapterPercent = currentTime / dur;
+        const totalChapters = currentBook.chapters || 1;
+        const overallPercent = (currentChapterIndex + chapterPercent) / totalChapters;
+        useLibraryStore.getState().updateProgress(currentBook.id, {
+          chapterIndex: currentChapterIndex,
+          position: currentTime,
+          percent: Math.min(overallPercent, 1),
+          lastPlayed: new Date().toISOString(),
+        });
+      }
+    }
+  }, [playbackState]);
 }

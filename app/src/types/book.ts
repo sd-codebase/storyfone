@@ -8,7 +8,9 @@ export interface Book {
   is_adult: boolean;
   chapters: number;
   description?: string;
+  tags: string[];
   rating: number;
+  ratingCount: number;
   duration: string;
   listeners: string;
   progress: number;

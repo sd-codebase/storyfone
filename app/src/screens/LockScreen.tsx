@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -24,7 +24,7 @@ export function LockScreen() {
   const insets = useSafeAreaInsets();
   const nav = useNavigation();
   const user = useAuthStore((s) => s.user);
-  const { isUnlocked, lock, verifyPin } = useLockStore();
+  const { verifyPin } = useLockStore();
 
   const [pin, setPin] = useState(['', '', '', '']);
   const [error, setError] = useState(false);
@@ -33,17 +33,6 @@ export function LockScreen() {
   const isVerified = user?.isVerified ?? false;
   const inGracePeriod = user?.createdAt ? isWithin24Hours(user.createdAt) : false;
   const canUnlock = isVerified || inGracePeriod;
-
-  // If already unlocked, lock immediately and go back (no PIN needed)
-  useEffect(() => {
-    if (isUnlocked) {
-      lock();
-      nav.goBack();
-    }
-  }, []);
-
-  // If we locked and went back, don't render anything
-  if (isUnlocked) return null;
 
   const pinValue = pin.join('');
   const isComplete = pinValue.length === 4;

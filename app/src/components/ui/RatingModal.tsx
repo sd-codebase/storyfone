@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -14,6 +14,10 @@ interface Props {
 export function RatingModal({ visible, initialRating = 0, onRate, onClose }: Props) {
   const t = useTheme();
   const [rating, setRating] = useState(initialRating);
+
+  useEffect(() => {
+    setRating(initialRating);
+  }, [initialRating]);
 
   return (
     <Modal visible={visible} transparent animationType="fade">

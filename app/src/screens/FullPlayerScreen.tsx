@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,12 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
+import { useDownloadStore } from '../store/downloadStore';
 import { AudioWave } from '../components/ui/AudioWave';
 import { BookCover } from '../components/ui/BookCover';
-import { EighteenPlus } from '../icons';
+import { RatingModal } from '../components/ui/RatingModal';
 import { formatTime } from '../utils/formatTime';
+import { rateBook, getBookRating } from '../api/books';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -51,9 +53,23 @@ export function FullPlayerScreen() {
     seekTo,
   } = usePlayerStore();
   const { likedBookIds, toggleLike } = useLibraryStore();
+  const chapters = usePlayerStore((s) => s.chapters);
+
+  const canRate = usePlayerStore((s) => s.canRate);
+  const { downloadBook, isDownloaded, isDownloading, getProgress, removeDownload } = useDownloadStore();
 
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showSleepMenu, setShowSleepMenu] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [userRating, setUserRating] = useState(0);
+
+  useEffect(() => {
+    if (currentBook?.id) {
+      getBookRating(currentBook.id)
+        .then((res) => { if (res.user_rating) setUserRating(res.user_rating); })
+        .catch(() => {});
+    }
+  }, [currentBook?.id]);
 
   const chapterDuration = duration || 1;
   const progress = chapterDuration > 0 ? currentTime / chapterDuration : 0;
@@ -108,21 +124,25 @@ export function FullPlayerScreen() {
       <View style={styles.infoSection}>
         <View style={styles.titleRow}>
           <View style={styles.titleContainer}>
-            <View style={styles.titleWithBadge}>
-              <Text style={[styles.title, { color: t.text }]} numberOfLines={1}>
-                {currentBook.title}
-              </Text>
-              {currentBook.is_adult && <EighteenPlus size={20} color={t.textMuted} />}
-            </View>
+            <Text style={[styles.title, { color: t.text }]} numberOfLines={1}>
+              {currentBook.title}
+            </Text>
             <Text style={[styles.author, { color: t.textSecondary }]}>{currentBook.author}</Text>
           </View>
-          <TouchableOpacity
-            onPress={() => toggleLike(currentBook.id)}
-            activeOpacity={0.7}
-            style={styles.likeBtn}
-          >
-            <Feather name="heart" size={22} color={isLiked ? '#FF4444' : t.textMuted} />
-          </TouchableOpacity>
+          <View style={styles.rightActions}>
+            {currentBook.is_adult && (
+              <View style={[styles.adultBadge, { backgroundColor: t.primary }]}>
+                <Text style={styles.adultBadgeText}>18+</Text>
+              </View>
+            )}
+            <TouchableOpacity
+              onPress={() => toggleLike(currentBook.id)}
+              activeOpacity={0.7}
+              style={styles.likeBtn}
+            >
+              <Feather name="heart" size={22} color={isLiked ? '#FF4444' : t.textMuted} />
+            </TouchableOpacity>
+          </View>
         </View>
         <Text style={[styles.chapterLabel, { color: t.primary }]}>
           Chapter {currentChapterIndex + 1} of {currentBook.chapters}
@@ -217,15 +237,61 @@ export function FullPlayerScreen() {
         </TouchableOpacity>
 
         {/* Download */}
-        <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.7}>
-          <Feather name="download" size={16} color={t.textSecondary} />
-          <Text style={[styles.secondaryLabel, { color: t.textMuted }]}>Download</Text>
-        </TouchableOpacity>
+        {(() => {
+          const bookId = currentBook.id;
+          const downloaded = isDownloaded(bookId);
+          const downloading = isDownloading(bookId);
+          const dlProgress = getProgress(bookId);
+          return (
+            <TouchableOpacity
+              style={[
+                styles.secondaryBtn,
+                downloading && styles.downloadingBtn,
+                downloaded && { backgroundColor: '#22C55E20', borderColor: '#22C55E40', borderWidth: 1 },
+              ]}
+              activeOpacity={0.7}
+              onPress={() => {
+                if (downloaded) removeDownload(bookId);
+                else if (!downloading) downloadBook(bookId, chapters);
+              }}
+            >
+              {downloading ? (
+                <View style={styles.downloadProgressRing}>
+                  <Text style={[styles.downloadProgressText, { color: t.primary }]}>
+                    {Math.round(dlProgress * 100)}
+                  </Text>
+                </View>
+              ) : (
+                <Feather
+                  name={downloaded ? 'check-circle' : 'download'}
+                  size={16}
+                  color={downloaded ? '#22C55E' : t.textSecondary}
+                />
+              )}
+              <Text style={[styles.secondaryLabel, { color: downloading ? t.primary : downloaded ? '#22C55E' : t.textMuted }]}>
+                {downloading ? 'Downloading' : downloaded ? 'Downloaded' : 'Download'}
+              </Text>
+            </TouchableOpacity>
+          );
+        })()}
 
         {/* Share */}
         <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.7}>
           <Feather name="share" size={16} color={t.textSecondary} />
           <Text style={[styles.secondaryLabel, { color: t.textMuted }]}>Share</Text>
+        </TouchableOpacity>
+
+        {/* Rate */}
+        <TouchableOpacity
+          style={[styles.secondaryBtn, !canRate && { opacity: 0.35 }]}
+          activeOpacity={0.7}
+          disabled={!canRate}
+          onPress={() => setShowRatingModal(true)}
+        >
+          <Feather name="star" size={16} color={userRating > 0 ? t.starActive : t.textSecondary} />
+          <Text style={[styles.secondaryLabel, { color: userRating > 0 ? t.starActive : t.textMuted }]}>
+            {userRating > 0 ? `${userRating}/5` : 'Rate'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -292,6 +358,20 @@ export function FullPlayerScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Rating Modal */}
+      <RatingModal
+        visible={showRatingModal}
+        initialRating={userRating}
+        onClose={() => setShowRatingModal(false)}
+        onRate={(r) => {
+          setShowRatingModal(false);
+          setUserRating(r);
+          if (currentBook) {
+            rateBook(currentBook.id, r).catch(() => {});
+          }
+        }}
+      />
 
       {/* Sleep Timer Menu Modal */}
       <Modal visible={showSleepMenu} transparent animationType="fade">
@@ -362,7 +442,9 @@ const styles = StyleSheet.create({
   infoSection: { paddingHorizontal: 32, zIndex: 1 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
   titleContainer: { flex: 1 },
-  titleWithBadge: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rightActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  adultBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  adultBadgeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   title: { fontSize: 22, fontWeight: '700', lineHeight: 28, flexShrink: 1 },
   author: { fontSize: 14, fontStyle: 'italic', marginTop: 4 },
   likeBtn: { marginTop: 4, padding: 4 },
@@ -427,6 +509,9 @@ const styles = StyleSheet.create({
   },
   speedText: { fontSize: 14, fontWeight: '800' },
   secondaryLabel: { fontSize: 9, fontWeight: '600' },
+  downloadingBtn: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  downloadProgressRing: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: 'currentColor', alignItems: 'center', justifyContent: 'center' },
+  downloadProgressText: { fontSize: 7, fontWeight: '800' },
   visualizerRow: {
     alignItems: 'center',
     marginTop: 16,

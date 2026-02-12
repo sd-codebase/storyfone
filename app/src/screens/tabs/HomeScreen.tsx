@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useLockStore } from '../../store/lockStore';
 import { useBookStore } from '../../store/bookStore';
 import { useLibraryStore } from '../../store/libraryStore';
+import { usePlayerStore } from '../../store/playerStore';
 import { useThemeStore } from '../../store/themeStore';
 import { StoryfoneLogo } from '../../icons';
 import { StoryCard } from '../../components/story/StoryCard';
@@ -27,11 +28,12 @@ export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const nav = useNavigation<Nav>();
   const { isAdult, user } = useAuthStore();
-  const { isUnlocked } = useLockStore();
-  const { searchQuery, selectedCategory, setSearchQuery, setCategory, getVisibleBooks, getVisibleCategories, fetchBooks, fetchTrending, fetchMoreBooks, trendingBooks, isLoading, hasMore } = useBookStore();
+  const { isUnlocked, lock } = useLockStore();
+  const { searchQuery, selectedCategory, setSearchQuery, setCategory, getVisibleBooks, getVisibleCategories, fetchBooks, fetchTrending, fetchMoreBooks, trendingBooks, isLoading, hasMore, searchBooks, searchResults, isSearching } = useBookStore();
   const { likedBookIds, toggleLike } = useLibraryStore();
   const progress = useLibraryStore((s) => s.listeningProgress);
   const toggleTheme = useThemeStore((s) => s.toggle);
+  const currentPlayingBookId = usePlayerStore((s) => s.currentBook?.id);
   const books = useBookStore((s) => s.books);
 
   const languages = user?.preferredLanguages?.join(',');
@@ -40,6 +42,18 @@ export function HomeScreen() {
     fetchBooks(languages);
     fetchTrending(languages);
   }, [languages]);
+
+  // Debounced server-side search
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (searchQuery.trim()) {
+      searchTimer.current = setTimeout(() => {
+        searchBooks(searchQuery.trim(), languages);
+      }, 400);
+    }
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, [searchQuery, languages]);
 
   const visibleBooks = getVisibleBooks(isAdult, isUnlocked);
   const categories = getVisibleCategories(isAdult, isUnlocked);
@@ -58,22 +72,27 @@ export function HomeScreen() {
       return p ? { ...b, progress: p.percent, currentChapter: p.chapterIndex + 1 } : b;
     });
 
-  const continueListening = allBooksWithProgress.filter((b) => b.progress > 0);
+  const continueListening = allBooksWithProgress.filter((b) => b.progress > 0 && b.id !== currentPlayingBookId);
 
   // Use server-managed trending (independent of genre)
   const trending = trendingBooks.length > 0
     ? trendingBooks.filter((b) => !(b.is_adult && (!isAdult || !isUnlocked)))
     : allBooksWithProgress.slice(0, 5);
 
-  // Category-filtered books for the story list
-  const filteredBooks = booksWithProgress.filter((b) => {
-    if (selectedCategory !== 'All' && !b.genreNames.includes(selectedCategory)) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      if (!b.title.toLowerCase().includes(q) && !b.author.toLowerCase().includes(q)) return false;
-    }
-    return true;
-  });
+  // When searching, use server results (with adult filter + progress merge); otherwise category-filtered
+  const searchBooksWithProgress = searchResults
+    .filter((b) => !(b.is_adult && (!isAdult || !isUnlocked)))
+    .map((b) => {
+      const p = progress[b.id];
+      return p ? { ...b, progress: p.percent, currentChapter: p.chapterIndex + 1 } : b;
+    });
+
+  const filteredBooks = searchQuery.trim()
+    ? searchBooksWithProgress
+    : booksWithProgress.filter((b) => {
+        if (selectedCategory !== 'All' && !b.genreNames.includes(selectedCategory)) return false;
+        return true;
+      });
 
   const categoryListRef = useRef<FlatList>(null);
 
@@ -113,7 +132,7 @@ export function HomeScreen() {
             {isAdult && (
               <IconButton
                 name={isUnlocked ? 'unlock' : 'lock'}
-                onPress={() => nav.navigate('LockScreen')}
+                onPress={() => isUnlocked ? lock() : nav.navigate('LockScreen')}
                 bgColor={t.bgCard}
                 borderColor={t.border}
                 color={isUnlocked ? t.primary : t.textMuted}
@@ -199,7 +218,10 @@ export function HomeScreen() {
       {/* Story List */}
       <View style={styles.storyList}>
         <SectionHeader title={searchQuery ? 'Search Results' : selectedCategory === 'All' ? 'All Stories' : selectedCategory} />
-        {filteredBooks.map((book) => (
+        {isSearching && (
+          <ActivityIndicator color={t.primary} style={{ marginVertical: 20 }} />
+        )}
+        {!isSearching && filteredBooks.map((book) => (
           <StoryCard
             key={book.id}
             book={book}
@@ -208,7 +230,7 @@ export function HomeScreen() {
             onLikePress={() => toggleLike(book.id)}
           />
         ))}
-        {filteredBooks.length === 0 && <EmptyState icon="search" title="No stories found" subtitle="Try a different search or category" />}
+        {!isSearching && filteredBooks.length === 0 && <EmptyState icon="search" title="No stories found" subtitle="Try a different search or category" />}
         {isLoading && books.length > 0 && (
           <ActivityIndicator color={t.primary} style={styles.loadingMore} />
         )}

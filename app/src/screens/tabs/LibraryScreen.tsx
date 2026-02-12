@@ -180,7 +180,7 @@ export function LibraryScreen() {
                   {!!book.genre && !!book.duration && <Text style={[styles.metaDot, { color: t.textMuted }]}>&bull;</Text>}
                   {!!book.duration && <Text style={[styles.metaItem, { color: t.textMuted }]}>{book.duration}</Text>}
                   {(!!book.genre || !!book.duration) && book.rating > 0 && <Text style={[styles.metaDot, { color: t.textMuted }]}>&bull;</Text>}
-                  {book.rating > 0 && <StarRating rating={book.rating} size={12} />}
+                  {book.rating > 0 && <StarRating rating={book.rating} count={book.ratingCount} size={12} />}
                 </View>
               </View>
             </TouchableOpacity>

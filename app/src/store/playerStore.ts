@@ -17,6 +17,7 @@ interface PlayerStore {
   playbackSpeed: number;
   sleepTimer: SleepTimerValue;
   showMiniPlayer: boolean;
+  canRate: boolean;
   bookmarks: number[];
 
   loadBook: (book: Book, chapters: ApiChapterOut[], chapterIndex?: number) => void;
@@ -34,6 +35,7 @@ interface PlayerStore {
   setDuration: (duration: number) => void;
   setIsPlaying: (playing: boolean) => void;
   setCurrentChapterIndex: (index: number) => void;
+  setCanRate: (value: boolean) => void;
   dismiss: () => void;
 }
 
@@ -65,6 +67,7 @@ export const usePlayerStore = create<PlayerStore>()(
     playbackSpeed: 1,
     sleepTimer: null,
     showMiniPlayer: false,
+    canRate: false,
     bookmarks: [],
 
     loadBook: (book, chapters, chapterIndex = 0) => {
@@ -76,6 +79,7 @@ export const usePlayerStore = create<PlayerStore>()(
         state.currentTime = 0;
         state.duration = 0;
         state.showMiniPlayer = true;
+        state.canRate = false;
         state.bookmarks = [];
       });
 
@@ -190,10 +194,14 @@ export const usePlayerStore = create<PlayerStore>()(
         state.bookmarks = [];
       }),
 
+    setCanRate: (value) =>
+      set((state) => { state.canRate = value; }),
+
     dismiss: () => {
       set((state) => {
         state.showMiniPlayer = false;
         state.isPlaying = false;
+        state.canRate = false;
         state.currentBook = null;
         state.chapters = [];
       });

@@ -1,8 +1,8 @@
 import React from 'react';
-import { Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
-import { GENRE_ICONS } from '../../icons';
+import { GENRE_ICONS, EighteenPlus } from '../../icons';
 import type { Genre } from '../../types/book';
 
 interface Props {
@@ -20,6 +20,11 @@ export function GenreCard({ genre, onPress }: Props) {
       activeOpacity={0.7}
       style={[styles.card, { backgroundColor: t.bgCard, borderColor: t.borderSubtle }]}
     >
+      {genre.is_adult && (
+        <View style={styles.adultBadge}>
+          <EighteenPlus size={18} />
+        </View>
+      )}
       {IconComponent ? (
         <IconComponent size={40} />
       ) : (
@@ -31,6 +36,7 @@ export function GenreCard({ genre, onPress }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { flex: 1, padding: 20, borderRadius: 16, borderWidth: 1, alignItems: 'center' },
+  card: { flex: 1, padding: 20, borderRadius: 16, borderWidth: 1, alignItems: 'center', position: 'relative' },
   name: { fontSize: 13, fontWeight: '600', marginTop: 8 },
+  adultBadge: { position: 'absolute', top: 8, right: 8 },
 });

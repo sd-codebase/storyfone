@@ -39,7 +39,7 @@ export function StoryCard({ book, liked, onPress, onLikePress }: Props) {
           {!!book.duration && <Text style={[styles.meta, { color: t.textMuted }]}>{book.duration}</Text>}
         </View>
         <View style={styles.bottomRow}>
-          {book.rating > 0 ? <StarRating rating={book.rating} /> : <View />}
+          {book.rating > 0 ? <StarRating rating={book.rating} count={book.ratingCount} /> : <View />}
           <View style={styles.actions}>
             {!!book.listeners && <Text style={[styles.listeners, { color: t.textMuted }]}>{book.listeners}</Text>}
             <TouchableOpacity onPress={onLikePress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
