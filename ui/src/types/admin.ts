@@ -101,3 +101,29 @@ export interface Chapter {
   created_at: string;
   updated_at: string;
 }
+
+export interface Report {
+  id: string;
+  user_id: string;
+  user_name: string;
+  book_id: string;
+  book_title: string;
+  reason: string;
+  created_at: string;
+}
+
+export interface TrendingList {
+  language: string;
+  language_name: string;
+  book_ids_sfw: string[];
+  book_ids_adult: string[];
+  updated_at: string;
+}
+
+export interface EditorPick {
+  language: string;
+  language_name: string;
+  book_id_sfw: string;
+  book_id_adult: string | null;
+  updated_at: string;
+}

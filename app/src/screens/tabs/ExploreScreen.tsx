@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, FlatList, RefreshControl, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,12 +25,22 @@ export function ExploreScreen() {
   const nav = useNavigation<Nav>();
   const { isAdult, user } = useAuthStore();
   const { isUnlocked } = useLockStore();
-  const { editorPick, getVisibleGenres, setCategory, fetchEditorPick } = useBookStore();
+  const { editorPick, getVisibleGenres, setCategory, fetchEditorPick, fetchBooks } = useBookStore();
 
   const languages = user?.preferredLanguages?.join(',');
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchEditorPick(languages, isAdult && isUnlocked);
+  }, [languages, isAdult, isUnlocked]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      fetchBooks(languages),
+      fetchEditorPick(languages, isAdult && isUnlocked),
+    ]);
+    setRefreshing(false);
   }, [languages, isAdult, isUnlocked]);
 
   const visibleGenres = getVisibleGenres(isAdult, isUnlocked);
@@ -44,6 +54,7 @@ export function ExploreScreen() {
         numColumns={2}
         columnWrapperStyle={styles.genreRow}
         contentContainerStyle={styles.listContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.primary} />}
         ListHeaderComponent={
           <>
             <Text style={[styles.title, { color: t.text }]}>Explore</Text>

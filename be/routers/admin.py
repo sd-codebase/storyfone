@@ -3,9 +3,10 @@ from __future__ import annotations
 import hashlib
 import random
 import string
-from typing import Any, Dict
+from typing import Any, Dict, List
 from urllib.parse import quote
 
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -17,6 +18,7 @@ from schemas import (
     GenerateOtpResponse,
     LanguageCreate, LanguageOut, LanguageUpdate,
     NarratorCreate, NarratorOut, NarratorUpdate,
+    ReportOut,
     UserCreate, UserOut, UserUpdate,
 )
 
@@ -68,7 +70,7 @@ def _narrator_out(doc: Dict[str, Any]) -> NarratorOut:
 
 def _user_out(doc: Dict[str, Any]) -> UserOut:
     return UserOut(
-        id=doc["_id"], name=doc["name"],
+        id=str(doc["_id"]), name=doc["name"],
         whatsapp_number=doc["whatsapp_number"],
         is_verified=doc.get("is_verified", False),
         birthdate=doc.get("birthdate"),
@@ -138,3 +140,68 @@ async def generate_otp(user_id: str, db: AsyncIOMotorDatabase = Depends(get_db))
     whatsapp_url = f"https://wa.me/{number}?text={message}"
 
     return GenerateOtpResponse(otp=otp, whatsapp_number=number, whatsapp_url=whatsapp_url)
+
+
+# --- Reports (read-only + delete) ---
+
+reports_router = APIRouter(prefix="/api/v1/admin/reports", tags=["reports"])
+
+
+@reports_router.get("", response_model=List[ReportOut])
+async def list_reports(db: AsyncIOMotorDatabase = Depends(get_db)):
+    docs = await db.reports.find().sort("created_at", -1).to_list(1000)
+    if not docs:
+        return []
+
+    # Batch-fetch user names
+    user_ids = list({d["user_id"] for d in docs})
+    # user_ids may be strings or ObjectIds — try both
+    user_obj_ids = []
+    for uid in user_ids:
+        try:
+            user_obj_ids.append(ObjectId(uid))
+        except Exception:
+            pass
+    user_docs = await db.users.find(
+        {"_id": {"$in": user_ids + user_obj_ids}}
+    ).to_list(None)
+    user_map: Dict[str, str] = {str(u["_id"]): u.get("name", "") for u in user_docs}
+
+    # Batch-fetch book titles
+    book_ids = list({d["book_id"] for d in docs})
+    book_obj_ids = []
+    for bid in book_ids:
+        try:
+            book_obj_ids.append(ObjectId(bid))
+        except Exception:
+            pass
+    book_docs = await db.books.find(
+        {"_id": {"$in": book_ids + book_obj_ids}}
+    ).to_list(None)
+    book_map: Dict[str, str] = {str(b["_id"]): b.get("title", "") for b in book_docs}
+
+    return [
+        ReportOut(
+            id=str(d["_id"]),
+            user_id=str(d["user_id"]),
+            user_name=user_map.get(str(d["user_id"]), "Unknown"),
+            book_id=str(d["book_id"]),
+            book_title=book_map.get(str(d["book_id"]), "Unknown"),
+            reason=d.get("reason", ""),
+            created_at=str(d.get("created_at", "")),
+        )
+        for d in docs
+    ]
+
+
+@reports_router.delete("/{report_id}")
+async def delete_report(report_id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
+    # Try as ObjectId first, then as string
+    try:
+        oid = ObjectId(report_id)
+        result = await db.reports.delete_one({"_id": oid})
+    except Exception:
+        result = await db.reports.delete_one({"_id": report_id})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Report not found")
+    return {"ok": True}

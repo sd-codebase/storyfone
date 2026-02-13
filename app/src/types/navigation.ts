@@ -20,6 +20,7 @@ export type MainStackParamList = {
   StoryDetail: { book: Book };
   FullPlayer: undefined;
   LockScreen: undefined;
+  Downloads: undefined;
 };
 
 export type TabParamList = {

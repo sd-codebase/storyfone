@@ -49,6 +49,8 @@ export function LoginScreen() {
             setPin(['', '', '', '']);
             setPinError(false);
           }, 500);
+        } else if (err.response?.status === 403) {
+          setError('This account has been deleted');
         } else {
           setError('Something went wrong. Please try again.');
         }

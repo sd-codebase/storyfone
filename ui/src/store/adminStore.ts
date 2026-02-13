@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 export type AppMode = 'editor' | 'admin';
-export type AdminSection = 'languages' | 'genres' | 'authors' | 'narrators' | 'users' | 'books';
+export type AdminSection = 'languages' | 'genres' | 'authors' | 'narrators' | 'users' | 'books' | 'reports' | 'editor-picks' | 'trending';
 
 interface AdminState {
   appMode: AppMode;

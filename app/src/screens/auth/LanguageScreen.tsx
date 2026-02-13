@@ -97,7 +97,7 @@ export function LanguageScreen() {
                       },
                     ]}
                   >
-                    {isActive && <Feather name="check" size={14} color="#fff" />}
+                    <Feather name="check" size={14} color={isActive ? '#fff' : 'transparent'} />
                     <Text style={[styles.langText, { color: isActive ? '#fff' : t.text }]}>
                       {lang.name}
                     </Text>

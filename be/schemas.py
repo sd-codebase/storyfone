@@ -311,6 +311,9 @@ class AppUserOut(BaseModel):
     status: str
     preferred_languages: List[str] = []
     created_at: str
+    pending_whatsapp_number: Optional[str] = None
+    pending_country_code: Optional[str] = None
+    has_pending_whatsapp: bool = False
 
 
 class AppAuthResponse(BaseModel):
@@ -448,13 +451,15 @@ class ChapterOut(BaseModel):
 # --- Admin: Trending ---
 
 class TrendingSetRequest(BaseModel):
-    book_ids: List[str]
+    book_ids_sfw: List[str]
+    book_ids_adult: List[str]
 
 
 class TrendingOut(BaseModel):
     language: str
     language_name: str
-    book_ids: List[str]
+    book_ids_sfw: List[str]
+    book_ids_adult: List[str]
     updated_at: str
 
 
@@ -489,6 +494,16 @@ class BookRatingOut(BaseModel):
 
 class ReportBookRequest(BaseModel):
     reason: str
+
+
+class ReportOut(BaseModel):
+    id: str
+    user_id: str
+    user_name: str
+    book_id: str
+    book_title: str
+    reason: str
+    created_at: str
 
 
 # --- Mobile App: User Stats ---

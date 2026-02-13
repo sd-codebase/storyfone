@@ -6,6 +6,9 @@ import {
   AudioOutlined,
   TeamOutlined,
   BookOutlined,
+  FlagOutlined,
+  StarOutlined,
+  FireOutlined,
 } from '@ant-design/icons';
 import { useAdminStore } from '../../store/adminStore';
 import type { AdminSection } from '../../store/adminStore';
@@ -15,6 +18,9 @@ import AuthorsPage from './pages/AuthorsPage';
 import NarratorsPage from './pages/NarratorsPage';
 import UsersPage from './pages/UsersPage';
 import BooksPage from './pages/BooksPage';
+import ReportsPage from './pages/ReportsPage';
+import EditorPicksPage from './pages/EditorPicksPage';
+import TrendingPage from './pages/TrendingPage';
 
 const { Sider, Content } = Layout;
 
@@ -25,6 +31,9 @@ const menuItems = [
   { key: 'narrators', icon: <AudioOutlined />, label: 'Narrators' },
   { key: 'books', icon: <BookOutlined />, label: 'Books' },
   { key: 'users', icon: <TeamOutlined />, label: 'Users' },
+  { key: 'trending', icon: <FireOutlined />, label: 'Trending' },
+  { key: 'editor-picks', icon: <StarOutlined />, label: 'Editor Picks' },
+  { key: 'reports', icon: <FlagOutlined />, label: 'Reports' },
 ];
 
 function SectionContent({ section }: { section: AdminSection }) {
@@ -41,6 +50,12 @@ function SectionContent({ section }: { section: AdminSection }) {
       return <UsersPage />;
     case 'books':
       return <BooksPage />;
+    case 'trending':
+      return <TrendingPage />;
+    case 'editor-picks':
+      return <EditorPicksPage />;
+    case 'reports':
+      return <ReportsPage />;
   }
 }
 

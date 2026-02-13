@@ -6,7 +6,7 @@ import TrackPlayer, {
   usePlaybackState,
   useTrackPlayerEvents,
 } from 'react-native-track-player';
-import { usePlayerStore } from '../store/playerStore';
+import { usePlayerStore, buildTracks, loadSession } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { recordListenTime } from '../api/user';
 import { recordListen } from '../api/books';
@@ -27,6 +27,43 @@ export function useTrackPlayerSync() {
   const lastPosition = useRef(0);
   const listenRecordedForBook = useRef<string | null>(null);
   const lastProgressSave = useRef(0);
+  const restoredRef = useRef(false);
+
+  // On startup: restore previous player session from AsyncStorage.
+  // Re-adds tracks to TrackPlayer and shows mini player in paused state.
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+
+    (async () => {
+      // Skip if store already has an active session (e.g. app was just backgrounded)
+      if (usePlayerStore.getState().showMiniPlayer) return;
+
+      const session = await loadSession();
+      if (!session || !session.currentBook || session.chapters.length === 0) return;
+
+      // Restore store state (shows mini player)
+      usePlayerStore.getState().restoreSession(session);
+
+      // Re-add tracks to TrackPlayer
+      const queue = await TrackPlayer.getQueue();
+      if (queue.length > 0) return;
+
+      const tracks = buildTracks(session.currentBook, session.chapters);
+      if (tracks.length === 0) return;
+
+      await TrackPlayer.add(tracks);
+      if (session.currentChapterIndex > 0 && session.currentChapterIndex < tracks.length) {
+        await TrackPlayer.skip(session.currentChapterIndex);
+      }
+      if (session.currentTime > 0) {
+        await TrackPlayer.seekTo(session.currentTime);
+      }
+      if (session.playbackSpeed !== 1) {
+        await TrackPlayer.setRate(session.playbackSpeed);
+      }
+    })();
+  }, []);
 
   // Sync progress + persist to libraryStore
   useEffect(() => {

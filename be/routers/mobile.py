@@ -46,13 +46,23 @@ from services.encryption import decrypt, encrypt, sha256_hash
 
 def _user_to_out(doc: dict) -> AppUserOut:
     """Convert a MongoDB user doc to AppUserOut, decrypting fields."""
-    whatsapp = decrypt(doc["whatsapp_encrypted"]) if doc.get("whatsapp_encrypted") else doc.get("whatsapp_number", "")
+    full_number = decrypt(doc["whatsapp_encrypted"]) if doc.get("whatsapp_encrypted") else doc.get("whatsapp_number", "")
+    country_code = doc.get("country_code", "")
+    # Strip country_code prefix so we return local-only number
+    if country_code and full_number.startswith(country_code):
+        local_number = full_number[len(country_code):]
+    else:
+        local_number = full_number
     birthdate = decrypt(doc["birthdate_encrypted"]) if doc.get("birthdate_encrypted") else doc.get("birthdate", "")
+
+    # has_pending_whatsapp: true if admin has set an OTP waiting for verification
+    has_pending = bool(doc.get("whatsapp_otp"))
+
     return AppUserOut(
         id=str(doc["_id"]),
         name=doc.get("name", ""),
-        whatsapp_number=whatsapp,
-        country_code=doc.get("country_code", ""),
+        whatsapp_number=local_number,
+        country_code=country_code,
         birthdate=birthdate,
         is_adult=doc.get("is_adult", False),
         is_verified=doc.get("is_verified", False),
@@ -60,6 +70,7 @@ def _user_to_out(doc: dict) -> AppUserOut:
         status=doc.get("status", "active"),
         preferred_languages=doc.get("preferred_languages", []),
         created_at=doc.get("created_at", ""),
+        has_pending_whatsapp=has_pending,
     )
 
 
@@ -124,14 +135,14 @@ async def register(body: AppRegisterRequest, db: AsyncIOMotorDatabase = Depends(
 
     doc = {
         "name": body.name,
-        "whatsapp_number": full_number,
+        "whatsapp_number": body.whatsapp_number,
         "whatsapp_encrypted": encrypt(full_number),
         "whatsapp_hash": wh,
         "country_code": body.country_code,
         "birthdate_encrypted": encrypt(body.birthdate),
         "pin_encrypted": encrypt(body.pin),
         "is_adult": is_adult,
-        "is_verified": True,
+        "is_verified": False,
         "plan": "Max",
         "status": "active",
         "preferred_languages": body.preferred_languages or [],
@@ -153,6 +164,9 @@ async def login(body: AppLoginRequest, db: AsyncIOMotorDatabase = Depends(get_db
     user = await db.users.find_one({"whatsapp_hash": wh})
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if user.get("status") == "disabled":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account has been deleted")
 
     stored_pin = user.get("pin_encrypted")
     if not stored_pin:
@@ -216,11 +230,10 @@ async def delete_account(
     user: dict = Depends(get_current_app_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    uid = str(user["_id"])
-    await db.users.delete_one({"_id": user["_id"]})
-    await db.user_library.delete_many({"user_id": uid})
-    await db.ratings.delete_many({"user_id": uid})
-    await db.user_stats.delete_one({"user_id": uid})
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"status": "disabled", "updated_at": datetime.utcnow().isoformat()}},
+    )
     return {"ok": True}
 
 
@@ -317,7 +330,7 @@ async def record_listen_time(
     return {"ok": True}
 
 
-# --- WhatsApp number change ---
+# --- WhatsApp (unverified users only) ---
 
 @protected_router.post("/users/me/change-whatsapp", status_code=200)
 async def change_whatsapp(
@@ -325,17 +338,27 @@ async def change_whatsapp(
     user: dict = Depends(get_current_app_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
+    if user.get("is_verified"):
+        raise HTTPException(status_code=403, detail="Number already verified")
     import random
-    otp = str(random.randint(100000, 999999))
+    new_full = body.new_country_code + body.new_whatsapp_number
+    new_hash = sha256_hash(new_full)
+    existing = await db.users.find_one({"whatsapp_hash": new_hash, "_id": {"$ne": user["_id"]}})
+    if existing:
+        raise HTTPException(status_code=409, detail="This number is already registered")
+    # Store local-only number and update encrypted/hash for the new number
+    wh = sha256_hash(new_full)
     await db.users.update_one(
         {"_id": user["_id"]},
         {"$set": {
-            "pending_whatsapp": body.new_country_code + body.new_whatsapp_number,
-            "pending_whatsapp_otp": encrypt(otp),
+            "whatsapp_number": body.new_whatsapp_number,
+            "whatsapp_encrypted": encrypt(new_full),
+            "whatsapp_hash": wh,
+            "country_code": body.new_country_code,
             "updated_at": datetime.utcnow().isoformat(),
         }},
     )
-    return {"otp": otp}
+    return {"ok": True}
 
 
 @protected_router.post("/users/me/verify-whatsapp", status_code=200)
@@ -344,28 +367,21 @@ async def verify_whatsapp(
     user: dict = Depends(get_current_app_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    stored_otp = user.get("pending_whatsapp_otp")
-    if not stored_otp:
-        raise HTTPException(status_code=400, detail="No pending change")
-    try:
-        if decrypt(stored_otp) != body.otp:
-            raise HTTPException(status_code=401, detail="Invalid OTP")
-    except HTTPException:
-        raise
-    except Exception:
+    import hashlib
+
+    admin_otp = user.get("whatsapp_otp")  # SHA256 hash set by admin generate-otp
+    if not admin_otp:
+        raise HTTPException(status_code=400, detail="No pending verification")
+
+    otp_hash = hashlib.sha256(body.otp.encode()).hexdigest()
+    if otp_hash != admin_otp:
         raise HTTPException(status_code=401, detail="Invalid OTP")
 
-    new_number = user.get("pending_whatsapp", "")
-    wh = sha256_hash(new_number)
     await db.users.update_one(
         {"_id": user["_id"]},
         {"$set": {
-            "whatsapp_number": new_number,
-            "whatsapp_encrypted": encrypt(new_number),
-            "whatsapp_hash": wh,
             "is_verified": True,
-            "pending_whatsapp": None,
-            "pending_whatsapp_otp": None,
+            "whatsapp_otp": None,
             "updated_at": datetime.utcnow().isoformat(),
         }},
     )
@@ -587,9 +603,12 @@ async def get_trending(
         query["language"] = {"$in": lang_ids}
 
     trending_docs = await db.trending_lists.find(query).to_list(None)
+    is_adult = user.get("is_adult", False)
     book_ids: List[str] = []
     for td in trending_docs:
-        book_ids.extend(td.get("book_ids", []))
+        book_ids.extend(td.get("book_ids_sfw", td.get("book_ids", [])))
+        if is_adult:
+            book_ids.extend(td.get("book_ids_adult", []))
 
     if not book_ids:
         return []
@@ -764,7 +783,7 @@ async def set_trending(
     now = datetime.utcnow().isoformat()
     await db.trending_lists.update_one(
         {"language": language_id},
-        {"$set": {"book_ids": body.book_ids, "updated_at": now}, "$setOnInsert": {"language": language_id}},
+        {"$set": {"book_ids_sfw": body.book_ids_sfw, "book_ids_adult": body.book_ids_adult, "updated_at": now}, "$setOnInsert": {"language": language_id}},
         upsert=True,
     )
     return {"ok": True}
@@ -781,7 +800,8 @@ async def get_all_trending(db: AsyncIOMotorDatabase = Depends(get_db)):
         out.append(TrendingOut(
             language=doc["language"],
             language_name=lang_map.get(doc["language"], doc["language"]),
-            book_ids=doc.get("book_ids", []),
+            book_ids_sfw=doc.get("book_ids_sfw", doc.get("book_ids", [])),
+            book_ids_adult=doc.get("book_ids_adult", []),
             updated_at=doc.get("updated_at", ""),
         ))
     return out

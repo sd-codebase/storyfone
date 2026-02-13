@@ -15,6 +15,9 @@ interface AppUser {
   isVerified: boolean;
   createdAt: string;
   preferredLanguages: string[];
+  pendingWhatsapp?: string;
+  pendingCountryCode?: string;
+  hasPendingWhatsapp: boolean;
 }
 
 function mapApiUser(u: ApiUser): AppUser {
@@ -38,6 +41,9 @@ function mapApiUser(u: ApiUser): AppUser {
     isVerified: u.is_verified,
     createdAt: u.created_at,
     preferredLanguages: u.preferred_languages || [],
+    pendingWhatsapp: u.pending_whatsapp_number ?? undefined,
+    pendingCountryCode: u.pending_country_code ?? undefined,
+    hasPendingWhatsapp: u.has_pending_whatsapp,
   };
 }
 

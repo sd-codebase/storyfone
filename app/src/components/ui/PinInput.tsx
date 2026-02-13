@@ -38,7 +38,7 @@ export function PinInput({ value, onChange, secure = true, error, autoFocus = tr
     const newValue = [...value];
     newValue[index] = text;
     onChange(newValue);
-    if (text && index < 3) {
+    if (text && index < value.length - 1) {
       inputs.current[index + 1]?.focus();
     }
   };
@@ -60,8 +60,12 @@ export function PinInput({ value, onChange, secure = true, error, autoFocus = tr
     }
   };
 
+  const isCompact = value.length > 4;
+  const cellWidth = isCompact ? 46 : 58;
+  const cellGap = isCompact ? 10 : 14;
+
   return (
-    <Animated.View style={[styles.row, { transform: [{ translateX: shakeAnim }] }]}>
+    <Animated.View style={[styles.row, { gap: cellGap, transform: [{ translateX: shakeAnim }] }]}>
       {value.map((digit, i) => (
         <TextInput
           key={i}
@@ -78,6 +82,7 @@ export function PinInput({ value, onChange, secure = true, error, autoFocus = tr
           style={[
             styles.input,
             {
+              width: cellWidth,
               borderColor: digit ? t.primary : t.borderSubtle,
               backgroundColor: digit ? t.primarySoft : t.bgInput,
               color: t.text,
@@ -90,9 +95,8 @@ export function PinInput({ value, onChange, secure = true, error, autoFocus = tr
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'center', gap: 14 },
+  row: { flexDirection: 'row', justifyContent: 'center' },
   input: {
-    width: 58,
     height: 64,
     borderRadius: 14,
     borderWidth: 2,

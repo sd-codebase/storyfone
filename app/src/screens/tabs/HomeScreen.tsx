@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, ScrollView, StyleSheet, ActivityIndicator, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -19,6 +19,7 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Tag } from '../../components/ui/Tag';
 import { IconButton } from '../../components/ui/IconButton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { GENRE_ICONS } from '../../icons/GenreIcons';
 import type { MainStackParamList } from '../../types/navigation';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
@@ -35,6 +36,7 @@ export function HomeScreen() {
   const toggleTheme = useThemeStore((s) => s.toggle);
   const currentPlayingBookId = usePlayerStore((s) => s.currentBook?.id);
   const books = useBookStore((s) => s.books);
+  const genres = useBookStore((s) => s.genres);
 
   const languages = user?.preferredLanguages?.join(',');
 
@@ -95,14 +97,30 @@ export function HomeScreen() {
       });
 
   const categoryListRef = useRef<FlatList>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const categoryYRef = useRef(0);
 
-  // Auto-scroll category list when selectedCategory changes
+  // Auto-scroll horizontal category list when selectedCategory changes
   useEffect(() => {
     const idx = categories.indexOf(selectedCategory);
     if (idx > 0 && categoryListRef.current) {
       categoryListRef.current.scrollToIndex({ index: idx, animated: true, viewPosition: 0.5 });
     }
   }, [selectedCategory, categories]);
+
+  // Scroll main view to category tabs only when tab gains focus (e.g. from Explore)
+  const lastFocusCategoryRef = useRef(selectedCategory);
+  useFocusEffect(
+    useCallback(() => {
+      const current = useBookStore.getState().selectedCategory;
+      if (current !== lastFocusCategoryRef.current && current !== 'All') {
+        if (scrollViewRef.current && categoryYRef.current > 0) {
+          scrollViewRef.current.scrollTo({ y: categoryYRef.current, animated: true });
+        }
+      }
+      lastFocusCategoryRef.current = current;
+    }, []),
+  );
 
   const [scrolled, setScrolled] = useState(false);
   const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -153,7 +171,7 @@ export function HomeScreen() {
           <ActivityIndicator size="large" color={t.primary} />
         </View>
       ) : (
-      <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 160 }} onScroll={onScroll} scrollEventThrottle={16} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollViewRef} style={styles.scroll} contentContainerStyle={{ paddingBottom: 160 }} onScroll={onScroll} scrollEventThrottle={16} showsVerticalScrollIndicator={false}>
       {/* Search */}
       <View style={[styles.searchBar, { backgroundColor: t.bgInput, borderColor: t.borderSubtle }]}>
         <Feather name="search" size={16} color={t.textMuted} />
@@ -169,7 +187,7 @@ export function HomeScreen() {
       {/* Continue Listening */}
       {!searchQuery && continueListening.length > 0 && (
         <View style={styles.section}>
-          <SectionHeader title="Continue Listening" style={styles.sectionTitle} />
+          <SectionHeader title="Continue Listening" icon="play-circle" style={styles.sectionTitle} />
           <FlatList
             horizontal
             data={continueListening}
@@ -185,7 +203,7 @@ export function HomeScreen() {
       {/* Trending */}
       {!searchQuery && trending.length > 0 && (
         <View style={styles.section}>
-          <SectionHeader title="Trending Now" style={styles.sectionTitle} />
+          <SectionHeader title="Trending Now" icon="trending-up" style={styles.sectionTitle} />
           <FlatList
             horizontal
             data={trending}
@@ -199,6 +217,7 @@ export function HomeScreen() {
       )}
 
       {/* Categories */}
+      <View onLayout={(e) => { categoryYRef.current = e.nativeEvent.layout.y; }}>
       <FlatList
         ref={categoryListRef}
         horizontal
@@ -214,10 +233,15 @@ export function HomeScreen() {
           }, 200);
         }}
       />
+      </View>
 
       {/* Story List */}
       <View style={styles.storyList}>
-        <SectionHeader title={searchQuery ? 'Search Results' : selectedCategory === 'All' ? 'All Stories' : selectedCategory} />
+        <SectionHeader
+          title={searchQuery ? 'Search Results' : selectedCategory === 'All' ? 'All Stories' : selectedCategory}
+          icon={searchQuery ? 'search' : selectedCategory === 'All' ? 'grid' : !GENRE_ICONS[selectedCategory] ? (genres.find((g) => g.name === selectedCategory)?.icon as any) || 'tag' : undefined}
+          customIcon={!searchQuery && selectedCategory !== 'All' && GENRE_ICONS[selectedCategory] ? React.createElement(GENRE_ICONS[selectedCategory], { size: 20 }) : undefined}
+        />
         {isSearching && (
           <ActivityIndicator color={t.primary} style={{ marginVertical: 20 }} />
         )}

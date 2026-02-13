@@ -4,10 +4,13 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   StyleSheet,
   Dimensions,
   ActivityIndicator,
   Alert,
+  Share,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -24,6 +27,7 @@ import { ProgressBar } from '../components/ui/ProgressBar';
 import { GradientButton } from '../components/ui/GradientButton';
 import { BookCover } from '../components/ui/BookCover';
 import { RatingModal } from '../components/ui/RatingModal';
+import { useDownloadStore } from '../store/downloadStore';
 import { getChapters, reportBook, rateBook, getBookRating } from '../api/books';
 import type { ApiChapterOut } from '../api/books';
 import type { MainStackParamList } from '../types/navigation';
@@ -60,10 +64,18 @@ export function StoryDetailScreen() {
   const isThisBookLoaded = currentBookId === book.id;
   const isThisBookPlaying = isThisBookLoaded && isPlaying;
 
+  const { downloadBook, isDownloaded, isDownloading, getProgress, removeDownload } = useDownloadStore();
+  const downloaded = isDownloaded(book.id);
+  const downloading = isDownloading(book.id);
+  const dlProgress = getProgress(book.id);
+
   const [chapters, setChapters] = useState<ApiChapterOut[]>([]);
   const [loadingChapters, setLoadingChapters] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [userRating, setUserRating] = useState(0);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportLoading, setReportLoading] = useState(false);
 
   useEffect(() => {
     getBookRating(book.id)
@@ -95,6 +107,42 @@ export function StoryDetailScreen() {
     nav.navigate('FullPlayer');
   };
 
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `Listen to "${book.title}" by ${book.author} on Storyfone!`,
+      });
+    } catch {}
+  };
+
+  const handleDownload = () => {
+    if (downloaded) {
+      Alert.alert('Remove Download', `Remove "${book.title}" from downloads?`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Remove', style: 'destructive', onPress: () => removeDownload(book.id) },
+      ]);
+    } else if (!downloading && chapters.length > 0) {
+      downloadBook(book.id, chapters);
+    }
+  };
+
+  const handleReport = async () => {
+    const reason = reportReason.trim();
+    if (!reason) return;
+    setReportLoading(true);
+    try {
+      await reportBook(book.id, reason);
+      setShowReportModal(false);
+      setReportReason('');
+      Alert.alert('Reported', 'Thank you for your feedback.');
+    } catch (e: any) {
+      const detail = e?.response?.data?.detail;
+      Alert.alert('Error', detail === 'Already reported' ? 'You have already reported this book.' : 'Could not submit report. Try again.');
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
   const hasMetaRow = book.rating > 0 || !!book.listeners || !!book.duration;
 
   return (
@@ -119,21 +167,12 @@ export function StoryDetailScreen() {
           <Feather name="arrow-left" size={20} color="#fff" />
         </TouchableOpacity>
 
-        {/* Right side buttons */}
-        <View style={[styles.headerRight, { top: insets.top + 8 }]}>
-          {book.is_adult && (
-            <View style={[styles.matureBadge, { backgroundColor: t.primary }]}>
-              <Text style={styles.matureText}>18+</Text>
-            </View>
-          )}
-          <TouchableOpacity
-            onPress={() => toggleLike(book.id)}
-            style={styles.headerBtn}
-            activeOpacity={0.7}
-          >
-            <Feather name="heart" size={18} color={isLiked ? '#FF4444' : '#fff'} />
-          </TouchableOpacity>
-        </View>
+        {/* 18+ badge */}
+        {book.is_adult && (
+          <View style={[styles.matureBadge, { top: insets.top + 8, backgroundColor: t.primary }]}>
+            <Text style={styles.matureText}>18+</Text>
+          </View>
+        )}
       </View>
 
       {/* Content */}
@@ -169,16 +208,46 @@ export function StoryDetailScreen() {
           </View>
         )}
 
-        {/* Tags */}
-        <View style={styles.tagRow}>
-          {!!book.genre && (
-            <View style={[styles.genreTag, { backgroundColor: t.primarySoft }]}>
-              <Text style={[styles.genreTagText, { color: t.primary }]}>{book.genre}</Text>
-            </View>
-          )}
-          <View style={[styles.genreTag, { backgroundColor: t.borderSubtle }]}>
-            <Text style={[styles.chapterTagText, { color: t.textMuted }]}>{book.chapters} chapters</Text>
-          </View>
+        {/* Action Buttons */}
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            onPress={handleShare}
+            style={[styles.actionBtn, { backgroundColor: t.bgCard, borderColor: t.borderSubtle }]}
+            activeOpacity={0.7}
+          >
+            <Feather name="share-2" size={18} color={t.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleDownload}
+            style={[styles.actionBtn, { backgroundColor: t.bgCard, borderColor: downloading ? t.primary : downloaded ? '#22C55E' : t.borderSubtle }]}
+            activeOpacity={0.7}
+          >
+            {downloading ? (
+              <Text style={[styles.dlProgressText, { color: t.primary }]}>
+                {Math.round(dlProgress * 100)}%
+              </Text>
+            ) : (
+              <Feather
+                name={downloaded ? 'check-circle' : 'download'}
+                size={18}
+                color={downloaded ? '#22C55E' : t.textSecondary}
+              />
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => toggleLike(book.id)}
+            style={[styles.actionBtn, { backgroundColor: t.bgCard, borderColor: t.borderSubtle }]}
+            activeOpacity={0.7}
+          >
+            <Feather name="heart" size={18} color={isLiked ? '#FF4444' : t.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => { setReportReason(''); setShowReportModal(true); }}
+            style={[styles.actionBtn, { backgroundColor: t.bgCard, borderColor: t.borderSubtle }]}
+            activeOpacity={0.7}
+          >
+            <Feather name="flag" size={18} color={t.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         {/* Progress (if started) */}
@@ -195,6 +264,18 @@ export function StoryDetailScreen() {
             <ProgressBar progress={book.progress} height={4} />
           </View>
         )}
+
+        {/* Tags */}
+        <View style={styles.tagRow}>
+          {!!book.genre && (
+            <View style={[styles.genreTag, { backgroundColor: t.primarySoft }]}>
+              <Text style={[styles.genreTagText, { color: t.primary }]}>{book.genre}</Text>
+            </View>
+          )}
+          <View style={[styles.genreTag, { backgroundColor: t.borderSubtle }]}>
+            <Text style={[styles.chapterTagText, { color: t.textMuted }]}>{book.chapters} chapters</Text>
+          </View>
+        </View>
 
         {/* Description */}
         {!!book.description && (
@@ -263,22 +344,6 @@ export function StoryDetailScreen() {
           })
         )}
 
-        {/* Report */}
-        <TouchableOpacity
-          onPress={() => {
-            Alert.alert('Report this book?', 'Select a reason', [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Inappropriate content', onPress: () => reportBook(book.id, 'inappropriate').catch(() => {}) },
-              { text: 'Copyright issue', onPress: () => reportBook(book.id, 'copyright').catch(() => {}) },
-              { text: 'Other', onPress: () => reportBook(book.id, 'other').catch(() => {}) },
-            ]);
-          }}
-          style={styles.reportBtn}
-          activeOpacity={0.7}
-        >
-          <Feather name="flag" size={14} color={t.textMuted} />
-          <Text style={[styles.reportText, { color: t.textMuted }]}>Report</Text>
-        </TouchableOpacity>
       </ScrollView>
 
       {/* Rating Modal */}
@@ -292,6 +357,44 @@ export function StoryDetailScreen() {
           rateBook(book.id, r).catch(() => {});
         }}
       />
+
+      {/* Report Modal */}
+      <Modal visible={showReportModal} transparent animationType="fade">
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          onPress={() => setShowReportModal(false)}
+          activeOpacity={1}
+        >
+          <View
+            style={[styles.reportModal, { backgroundColor: t.bgElevated, borderColor: t.border }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <Text style={[styles.reportModalTitle, { color: t.text }]}>Report this book</Text>
+            <Text style={[styles.reportModalSubtitle, { color: t.textMuted }]}>
+              Tell us why you're reporting this book
+            </Text>
+            <TextInput
+              value={reportReason}
+              onChangeText={(v) => setReportReason(v.slice(0, 100))}
+              placeholder="Describe the issue..."
+              placeholderTextColor={t.textMuted}
+              maxLength={100}
+              multiline
+              style={[styles.reportInput, { color: t.text, borderColor: t.border, backgroundColor: t.bgCard }]}
+            />
+            <Text style={[styles.reportCharCount, { color: t.textMuted }]}>
+              {reportReason.length}/100
+            </Text>
+            <GradientButton
+              title="Submit Report"
+              onPress={handleReport}
+              loading={reportLoading}
+              disabled={reportReason.trim().length === 0}
+              style={styles.reportSubmitBtn}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Bottom Play Button */}
       <LinearGradient
@@ -333,23 +436,32 @@ const styles = StyleSheet.create({
     left: 20,
     zIndex: 10,
   },
-  headerRight: {
+  matureBadge: {
     position: 'absolute',
     right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
     zIndex: 10,
   },
-  matureBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
   matureText: { fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 1 },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: 16,
+  },
+  actionBtn: {
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+  },
   content: { flex: 1 },
   contentInner: { padding: 20, paddingTop: 28, paddingBottom: 120 },
-  title: { fontSize: 28, fontWeight: '700', lineHeight: 34 },
+  title: { fontSize: 28, fontWeight: '700', lineHeight: 42 },
   author: { fontSize: 14, fontStyle: 'italic', marginTop: 8 },
   metaRow: {
     flexDirection: 'row',
@@ -415,6 +527,29 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   playBtn: { width: '100%' },
-  reportBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', marginTop: 24, paddingVertical: 8 },
-  reportText: { fontSize: 12 },
+  dlProgressText: { fontSize: 11, fontWeight: '700' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reportModal: {
+    width: 300,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 24,
+  },
+  reportModalTitle: { fontSize: 18, fontWeight: '700', textAlign: 'center', marginBottom: 4 },
+  reportModalSubtitle: { fontSize: 13, textAlign: 'center', marginBottom: 16 },
+  reportInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  reportCharCount: { fontSize: 11, textAlign: 'right', marginTop: 4 },
+  reportSubmitBtn: { width: '100%', marginTop: 12 },
 });

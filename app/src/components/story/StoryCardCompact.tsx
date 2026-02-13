@@ -18,7 +18,7 @@ export function StoryCardCompact({ book, onPress }: Props) {
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={[styles.card, { backgroundColor: t.bgCard, borderColor: t.borderSubtle }]}>
       <View style={styles.coverArea}>
-        <BookCover thumbnailUrl={book.thumbnailUrl} title={book.title} size={{ width: '100%', height: 100 }} borderRadius={0} />
+        <BookCover thumbnailUrl={book.thumbnailUrl} title={book.title} size={{ width: 56, height: 56 }} borderRadius={0} />
         <View style={styles.playBadge}>
           <Feather name="play" size={10} color="#fff" />
         </View>
@@ -29,7 +29,7 @@ export function StoryCardCompact({ book, onPress }: Props) {
         )}
       </View>
       <View style={styles.info}>
-        <Text style={[styles.title, { color: t.text }]} numberOfLines={1}>{book.title}</Text>
+        <Text style={[styles.title, { color: t.text }]} numberOfLines={2}>{book.title}</Text>
         <Text style={[styles.chapter, { color: t.textMuted }]}>Ch. {book.currentChapter}/{book.chapters}</Text>
         <ProgressBar progress={book.progress} height={3} />
       </View>
@@ -38,11 +38,11 @@ export function StoryCardCompact({ book, onPress }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { width: 160, borderRadius: 16, overflow: 'hidden', borderWidth: 1 },
-  coverArea: { height: 100, position: 'relative' },
-  playBadge: { position: 'absolute', bottom: 8, right: 8, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
-  adultBadge: { position: 'absolute', top: 6, right: 6 },
-  info: { padding: 12 },
-  title: { fontSize: 13, fontWeight: '600', marginBottom: 4 },
-  chapter: { fontSize: 11, marginBottom: 8 },
+  card: { width: 190, flexDirection: 'row', borderRadius: 16, overflow: 'hidden', borderWidth: 1 },
+  coverArea: { width: 56, height: 56, position: 'relative' },
+  playBadge: { position: 'absolute', bottom: 4, right: 4, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
+  adultBadge: { position: 'absolute', top: 4, right: 4 },
+  info: { flex: 1, padding: 10, justifyContent: 'center' },
+  title: { fontSize: 12, fontWeight: '600', marginBottom: 3 },
+  chapter: { fontSize: 10, marginBottom: 6 },
 });

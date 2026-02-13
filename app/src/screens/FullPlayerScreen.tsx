@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Dimensions,
   Modal,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -23,8 +24,10 @@ import { rateBook, getBookRating } from '../api/books';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
-const SLEEP_OPTIONS: { value: null | 15 | 30 | 45 | 60 | 'chapter'; label: string }[] = [
+const SLEEP_OPTIONS: { value: null | 1 | 5 | 15 | 30 | 45 | 60 | 'chapter'; label: string }[] = [
   { value: null, label: 'Off' },
+  { value: 1, label: '1 minute' },
+  { value: 5, label: '5 minutes' },
   { value: 15, label: '15 minutes' },
   { value: 30, label: '30 minutes' },
   { value: 45, label: '45 minutes' },
@@ -62,6 +65,8 @@ export function FullPlayerScreen() {
   const [showSleepMenu, setShowSleepMenu] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [userRating, setUserRating] = useState(0);
+  const [sleepRemaining, setSleepRemaining] = useState<number | null>(null);
+  const prevChapterRef = useRef(currentChapterIndex);
 
   useEffect(() => {
     if (currentBook?.id) {
@@ -70,6 +75,40 @@ export function FullPlayerScreen() {
         .catch(() => {});
     }
   }, [currentBook?.id]);
+
+  // Reset countdown when sleep timer selection changes
+  useEffect(() => {
+    if (sleepTimer && sleepTimer !== 'chapter') {
+      setSleepRemaining(sleepTimer * 60);
+    } else {
+      setSleepRemaining(null);
+    }
+  }, [sleepTimer]);
+
+  // Countdown tick — only while playing
+  useEffect(() => {
+    if (sleepRemaining === null || !isPlaying) return;
+    const interval = setInterval(() => {
+      setSleepRemaining((prev) => {
+        if (prev === null || prev <= 1) {
+          usePlayerStore.getState().pause();
+          setSleepTimer(null);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [sleepRemaining !== null, isPlaying]);
+
+  // 'End of chapter' — pause when chapter changes
+  useEffect(() => {
+    if (sleepTimer === 'chapter' && currentChapterIndex !== prevChapterRef.current && prevChapterRef.current !== -1) {
+      usePlayerStore.getState().pause();
+      setSleepTimer(null);
+    }
+    prevChapterRef.current = currentChapterIndex;
+  }, [currentChapterIndex, sleepTimer]);
 
   const chapterDuration = duration || 1;
   const progress = chapterDuration > 0 ? currentTime / chapterDuration : 0;
@@ -247,12 +286,18 @@ export function FullPlayerScreen() {
               style={[
                 styles.secondaryBtn,
                 downloading && styles.downloadingBtn,
-                downloaded && { backgroundColor: '#22C55E20', borderColor: '#22C55E40', borderWidth: 1 },
+                downloaded && { borderColor: '#22C55E', borderWidth: 1 },
               ]}
               activeOpacity={0.7}
               onPress={() => {
-                if (downloaded) removeDownload(bookId);
-                else if (!downloading) downloadBook(bookId, chapters);
+                if (downloaded) {
+                  Alert.alert('Remove Download', `Remove "${currentBook.title}" from downloads?`, [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Remove', style: 'destructive', onPress: () => removeDownload(bookId) },
+                  ]);
+                } else if (!downloading) {
+                  downloadBook(bookId, chapters);
+                }
               }}
             >
               {downloading ? (
@@ -268,16 +313,18 @@ export function FullPlayerScreen() {
                   color={downloaded ? '#22C55E' : t.textSecondary}
                 />
               )}
-              <Text style={[styles.secondaryLabel, { color: downloading ? t.primary : downloaded ? '#22C55E' : t.textMuted }]}>
-                {downloading ? 'Downloading' : downloaded ? 'Downloaded' : 'Download'}
-              </Text>
+              {downloading && (
+                <Text style={[styles.secondaryLabel, { color: t.primary }]}>
+                  {Math.round(dlProgress * 100)}%
+                </Text>
+              )}
             </TouchableOpacity>
           );
         })()}
 
         {/* Share */}
         <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.7}>
-          <Feather name="share" size={16} color={t.textSecondary} />
+          <Feather name="share-2" size={16} color={t.textSecondary} />
           <Text style={[styles.secondaryLabel, { color: t.textMuted }]}>Share</Text>
         </TouchableOpacity>
 
@@ -316,9 +363,14 @@ export function FullPlayerScreen() {
         <View style={styles.chapterStripRight}>
           <Text style={[styles.speedBadge, { color: t.textSecondary }]}>{playbackSpeed}x</Text>
           {sleepTimer && (
-            <View style={[styles.chipBadge, { backgroundColor: t.primarySoft }]}>
-              <Text style={[styles.chipText, { color: t.primary }]}>
-                {sleepTimer === 'chapter' ? 'Ch.' : `${sleepTimer}m`}
+            <View style={[styles.sleepChip, { backgroundColor: t.primarySoft }]}>
+              <Feather name="clock" size={11} color={t.primary} />
+              <Text style={[styles.sleepChipText, { color: t.primary }]}>
+                {sleepTimer === 'chapter'
+                  ? 'End of Ch.'
+                  : sleepRemaining !== null
+                    ? `${String(Math.floor(sleepRemaining / 60)).padStart(2, '0')}:${String(sleepRemaining % 60).padStart(2, '0')}`
+                    : `${sleepTimer}m`}
               </Text>
             </View>
           )}
@@ -533,8 +585,8 @@ const styles = StyleSheet.create({
   chapterStripTitle: { fontSize: 12, fontWeight: '600' },
   chapterStripSub: { fontSize: 11 },
   chapterStripRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  chipBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
-  chipText: { fontSize: 10, fontWeight: '700' },
+  sleepChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  sleepChipText: { fontSize: 11, fontWeight: '700', fontVariant: ['tabular-nums'] },
   speedBadge: { fontSize: 11, fontWeight: '600' },
   menuOverlay: {
     flex: 1,

@@ -5,6 +5,7 @@ import { MainTabs } from './MainTabs';
 import { StoryDetailScreen } from '../screens/StoryDetailScreen';
 import { FullPlayerScreen } from '../screens/FullPlayerScreen';
 import { LockScreen } from '../screens/LockScreen';
+import { DownloadsScreen } from '../screens/DownloadsScreen';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
@@ -15,6 +16,7 @@ export function MainStack() {
       <Stack.Screen name="StoryDetail" component={StoryDetailScreen} />
       <Stack.Screen name="FullPlayer" component={FullPlayerScreen} options={{ presentation: 'modal' }} />
       <Stack.Screen name="LockScreen" component={LockScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="Downloads" component={DownloadsScreen} />
     </Stack.Navigator>
   );
 }

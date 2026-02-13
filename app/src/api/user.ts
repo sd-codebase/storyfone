@@ -40,11 +40,10 @@ export async function recordListenTime(seconds: number, bookId: string) {
 }
 
 export async function changeWhatsapp(newNumber: string, newCountryCode: string) {
-  const { data } = await api.post<{ otp: string }>(ENDPOINTS.user.changeWhatsapp, {
+  await api.post(ENDPOINTS.user.changeWhatsapp, {
     new_whatsapp_number: newNumber,
     new_country_code: newCountryCode,
   });
-  return data.otp;
 }
 
 export async function verifyWhatsapp(otp: string) {

@@ -1,11 +1,40 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import TrackPlayer, { TrackType } from 'react-native-track-player';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Book } from '../types/book';
 import type { ApiChapterOut } from '../api/books';
 import { API_BASE } from '../constants/api';
 
-type SleepTimerValue = null | 15 | 30 | 45 | 60 | 'chapter';
+type SleepTimerValue = null | 1 | 5 | 15 | 30 | 45 | 60 | 'chapter';
+
+const SESSION_KEY = 'player-session';
+
+interface PlayerSession {
+  currentBook: Book;
+  chapters: ApiChapterOut[];
+  currentChapterIndex: number;
+  playbackSpeed: number;
+  currentTime: number;
+}
+
+function saveSession(state: PlayerSession) {
+  AsyncStorage.setItem(SESSION_KEY, JSON.stringify(state)).catch(() => {});
+}
+
+function clearSession() {
+  AsyncStorage.removeItem(SESSION_KEY).catch(() => {});
+}
+
+export async function loadSession(): Promise<PlayerSession | null> {
+  try {
+    const raw = await AsyncStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as PlayerSession;
+  } catch {
+    return null;
+  }
+}
 
 interface PlayerStore {
   currentBook: Book | null;
@@ -21,6 +50,7 @@ interface PlayerStore {
   bookmarks: number[];
 
   loadBook: (book: Book, chapters: ApiChapterOut[], chapterIndex?: number) => void;
+  restoreSession: (session: PlayerSession) => void;
   play: () => void;
   pause: () => void;
   togglePlayPause: () => void;
@@ -39,7 +69,7 @@ interface PlayerStore {
   dismiss: () => void;
 }
 
-function buildTracks(book: Book, chapters: ApiChapterOut[]) {
+export function buildTracks(book: Book, chapters: ApiChapterOut[]) {
   return chapters
     .filter((ch) => ch.audio_hls)
     .map((ch) => ({
@@ -83,6 +113,8 @@ export const usePlayerStore = create<PlayerStore>()(
         state.bookmarks = [];
       });
 
+      saveSession({ currentBook: book, chapters, currentChapterIndex: chapterIndex, playbackSpeed: get().playbackSpeed, currentTime: 0 });
+
       const tracks = buildTracks(book, chapters);
       if (tracks.length === 0) return;
 
@@ -94,6 +126,18 @@ export const usePlayerStore = create<PlayerStore>()(
         }
         await TrackPlayer.play();
       })();
+    },
+
+    restoreSession: (session) => {
+      set((state) => {
+        state.currentBook = session.currentBook;
+        state.chapters = session.chapters;
+        state.currentChapterIndex = session.currentChapterIndex;
+        state.playbackSpeed = session.playbackSpeed;
+        state.currentTime = session.currentTime;
+        state.showMiniPlayer = true;
+        state.isPlaying = false;
+      });
     },
 
     play: () => {
@@ -133,27 +177,33 @@ export const usePlayerStore = create<PlayerStore>()(
     },
 
     nextChapter: () => {
-      const { currentBook, currentChapterIndex } = get();
+      const { currentBook, currentChapterIndex, chapters, playbackSpeed } = get();
       if (currentBook && currentChapterIndex < currentBook.chapters - 1) {
+        const newIndex = currentChapterIndex + 1;
         set((state) => {
-          state.currentChapterIndex += 1;
+          state.currentChapterIndex = newIndex;
           state.currentTime = 0;
           state.duration = 0;
           state.bookmarks = [];
         });
+        saveSession({ currentBook, chapters, currentChapterIndex: newIndex, playbackSpeed, currentTime: 0 });
         TrackPlayer.skipToNext();
       }
     },
 
     prevChapter: () => {
-      const { currentChapterIndex } = get();
+      const { currentBook, currentChapterIndex, chapters, playbackSpeed } = get();
       if (currentChapterIndex > 0) {
+        const newIndex = currentChapterIndex - 1;
         set((state) => {
-          state.currentChapterIndex -= 1;
+          state.currentChapterIndex = newIndex;
           state.currentTime = 0;
           state.duration = 0;
           state.bookmarks = [];
         });
+        if (currentBook) {
+          saveSession({ currentBook, chapters, currentChapterIndex: newIndex, playbackSpeed, currentTime: 0 });
+        }
         TrackPlayer.skipToPrevious();
       }
     },
@@ -205,6 +255,7 @@ export const usePlayerStore = create<PlayerStore>()(
         state.currentBook = null;
         state.chapters = [];
       });
+      clearSession();
       TrackPlayer.reset();
     },
   }))

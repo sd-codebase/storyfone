@@ -1,11 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert, Linking, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
+import type { MainStackParamList } from '../../types/navigation';
 import { useThemeStore } from '../../store/themeStore';
 import { StoryfoneIcon } from '../../icons';
 import { getUserStats, updateMe, deleteAccount, changeWhatsapp, verifyWhatsapp } from '../../api/user';
@@ -17,25 +20,32 @@ import { LEGAL_URLS } from '../../constants/api';
 export function ProfileScreen() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
-  const { user, logout, setUser } = useAuthStore();
+  const nav = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
+  const { user, logout, setUser, loadToken } = useAuthStore();
   const { mode, toggle: toggleTheme } = useThemeStore();
 
   const [stats, setStats] = useState<{ total_hours: number; unique_books: number; streak_days: number } | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(user?.name || '');
 
-  // WhatsApp change flow
-  const [showWhatsappModal, setShowWhatsappModal] = useState(false);
-  const [whatsappStep, setWhatsappStep] = useState<'phone' | 'otp'>('phone');
+  // Change number flow (unverified users only)
+  const [showChangeModal, setShowChangeModal] = useState(false);
   const [newCountryCode, setNewCountryCode] = useState(user?.countryCode || '+91');
   const [newPhone, setNewPhone] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '']);
-  const [waLoading, setWaLoading] = useState(false);
-  const [waError, setWaError] = useState('');
+  const [changeLoading, setChangeLoading] = useState(false);
+  const [changeError, setChangeError] = useState('');
 
-  useEffect(() => {
-    getUserStats().then(setStats).catch(() => {});
-  }, []);
+  // Inline OTP verification flow (unverified users only)
+  const [showInlineOtp, setShowInlineOtp] = useState(false);
+  const [inlineOtp, setInlineOtp] = useState(['', '', '', '', '', '']);
+  const [inlineLoading, setInlineLoading] = useState(false);
+  const [inlineError, setInlineError] = useState('');
+
+  useFocusEffect(
+    useCallback(() => {
+      getUserStats().then(setStats).catch(() => {});
+    }, []),
+  );
 
   const handleSaveName = async () => {
     if (nameValue.trim().length < 2) return;
@@ -48,38 +58,36 @@ export function ProfileScreen() {
     setEditingName(false);
   };
 
-  const handleWhatsappChange = async () => {
-    if (newPhone.length < 7) { setWaError('Enter a valid phone number'); return; }
-    setWaLoading(true);
-    setWaError('');
+  const handleChangeNumber = async () => {
+    if (newPhone.length < 7) { setChangeError('Enter a valid phone number'); return; }
+    setChangeLoading(true);
+    setChangeError('');
     try {
       await changeWhatsapp(newPhone, newCountryCode);
-      setWhatsappStep('otp');
-    } catch {
-      setWaError('Failed to send OTP. Try again.');
+      setShowChangeModal(false);
+      setNewPhone('');
+      await loadToken();
+    } catch (e: any) {
+      setChangeError(e?.response?.data?.detail || 'Failed. Try again.');
     } finally {
-      setWaLoading(false);
+      setChangeLoading(false);
     }
   };
 
-  const handleWhatsappVerify = async () => {
-    const code = otp.join('');
-    if (code.length < 4) { setWaError('Enter the 4-digit OTP'); return; }
-    setWaLoading(true);
-    setWaError('');
+  const handleInlineVerify = async () => {
+    const code = inlineOtp.join('');
+    if (code.length < 6) { setInlineError('Enter the 6-digit OTP'); return; }
+    setInlineLoading(true);
+    setInlineError('');
     try {
       await verifyWhatsapp(code);
-      if (user) {
-        setUser({ ...user, whatsapp: newPhone, countryCode: newCountryCode, isVerified: true });
-      }
-      setShowWhatsappModal(false);
-      setWhatsappStep('phone');
-      setNewPhone('');
-      setOtp(['', '', '', '']);
+      setShowInlineOtp(false);
+      setInlineOtp(['', '', '', '', '', '']);
+      await loadToken();
     } catch {
-      setWaError('Invalid OTP. Try again.');
+      setInlineError('Invalid OTP. Try again.');
     } finally {
-      setWaLoading(false);
+      setInlineLoading(false);
     }
   };
 
@@ -112,19 +120,18 @@ export function ProfileScreen() {
     );
   };
 
-  const isNewUser = stats && stats.total_hours === 0 && stats.unique_books === 0 && stats.streak_days === 0;
   const displayStats = [
-    { label: 'Hours', value: stats ? (isNewUser ? 'Start listening!' : stats.total_hours.toFixed(1)) : '—', icon: 'clock' as const },
-    { label: 'Stories', value: stats ? (isNewUser ? 'Explore' : String(stats.unique_books)) : '—', icon: 'book' as const },
-    { label: 'Streak', value: stats ? (isNewUser ? 'Begin today!' : `${stats.streak_days}d`) : '—', icon: 'trending-up' as const },
+    { label: 'Hours', value: stats ? (stats.total_hours > 0 ? stats.total_hours.toFixed(1) : 'Start listening!') : '—', icon: 'clock' as const, small: stats?.total_hours === 0 },
+    { label: 'Stories', value: stats ? (stats.unique_books > 0 ? String(stats.unique_books) : 'Explore') : '—', icon: 'book' as const, small: stats?.unique_books === 0 },
+    { label: 'Streak', value: stats ? (stats.streak_days > 0 ? `${stats.streak_days}d` : 'Begin today!') : '—', icon: 'trending-up' as const, small: stats?.streak_days === 0 },
   ];
 
   const settingsItems: { icon: React.ComponentProps<typeof Feather>['name']; label: string; onPress?: () => void }[] = [
     { icon: mode === 'dark' ? 'sun' : 'moon', label: `Switch to ${mode === 'dark' ? 'Light' : 'Dark'} Mode`, onPress: toggleTheme },
-    { icon: 'download', label: 'Downloads' },
-    { icon: 'lock', label: 'Privacy' },
+    { icon: 'download', label: 'Downloads', onPress: () => nav.navigate('Downloads') },
+    { icon: 'lock', label: 'Privacy', onPress: () => Linking.openURL(LEGAL_URLS.privacyPolicy) },
     { icon: 'file-text', label: 'Terms of Use', onPress: () => Linking.openURL(LEGAL_URLS.termsOfService) },
-    { icon: 'help-circle', label: 'Help & Support' },
+    { icon: 'help-circle', label: 'Help & Support', onPress: () => Linking.openURL(LEGAL_URLS.helpAndSupport) },
   ];
 
   const appVersion = Constants.expoConfig?.version || '1.0.0';
@@ -190,8 +197,8 @@ export function ProfileScreen() {
             style={[styles.statCard, { backgroundColor: t.bgCard, borderColor: t.borderSubtle }]}
           >
             <Feather name={stat.icon} size={20} color={t.primary} />
-            <Text style={[styles.statValue, { color: t.text }, isNewUser && styles.statValueSmall]}>{stat.value}</Text>
-            <Text style={[styles.statLabel, { color: t.textMuted }]}>{stat.label}</Text>
+            <Text style={[styles.statValue, { color: t.text }, stat.small && styles.statValueSmall, stat.small && styles.statValueCenter]}>{stat.value}</Text>
+            {!stat.small && <Text style={[styles.statLabel, { color: t.textMuted }]}>{stat.label}</Text>}
           </View>
         ))}
       </View>
@@ -200,17 +207,7 @@ export function ProfileScreen() {
       <Text style={[styles.sectionTitle, { color: t.text }]}>ACCOUNT INFO</Text>
       <View style={[styles.infoCard, { backgroundColor: t.bgCard, borderColor: t.borderSubtle }]}>
         {/* WhatsApp */}
-        <TouchableOpacity
-          style={[styles.infoRow, { borderBottomColor: t.borderSubtle }]}
-          activeOpacity={0.7}
-          onPress={() => {
-            setShowWhatsappModal(true);
-            setWhatsappStep('phone');
-            setNewPhone('');
-            setOtp(['', '', '', '']);
-            setWaError('');
-          }}
-        >
+        <View style={[styles.infoRow, { borderBottomColor: t.borderSubtle }]}>
           <Feather name="smartphone" size={16} color={t.textSecondary} />
           <View style={styles.infoContent}>
             <Text style={[styles.infoLabel, { color: t.textMuted }]}>WHATSAPP</Text>
@@ -218,6 +215,7 @@ export function ProfileScreen() {
               <Text style={[styles.countryCode, { color: t.textMuted }]}>
                 {user?.countryCode || '+91'}
               </Text>
+              <Text style={[styles.phoneSeparator, { color: t.textMuted }]}>|</Text>
               <Text style={[styles.infoValue, { color: t.text }]}>
                 {user?.whatsapp || '•••••••••'}
               </Text>
@@ -229,12 +227,53 @@ export function ProfileScreen() {
               <Text style={styles.verifiedText}>Verified</Text>
             </View>
           ) : (
-            <View style={[styles.verifiedBadge, { backgroundColor: 'rgba(234,179,8,0.1)' }]}>
-              <Feather name="alert-circle" size={10} color="#EAB308" />
-              <Text style={[styles.verifiedText, { color: '#EAB308' }]}>Unverified</Text>
+            <View style={styles.badgeRow}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  setShowChangeModal(true);
+                  setNewPhone('');
+                  setChangeError('');
+                }}
+              >
+                <View style={[styles.verifiedBadge, { backgroundColor: 'rgba(99,102,241,0.1)' }]}>
+                  <Feather name="edit-2" size={10} color="#6366F1" />
+                  <Text style={[styles.verifiedText, { color: '#6366F1' }]}>Change</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  setShowInlineOtp((v) => !v);
+                  setInlineError('');
+                  setInlineOtp(['', '', '', '', '', '']);
+                }}
+              >
+                <View style={[styles.verifiedBadge, { backgroundColor: 'rgba(234,179,8,0.1)' }]}>
+                  <Feather name="alert-circle" size={10} color="#EAB308" />
+                  <Text style={[styles.verifiedText, { color: '#EAB308' }]}>Verify</Text>
+                </View>
+              </TouchableOpacity>
             </View>
           )}
-        </TouchableOpacity>
+        </View>
+
+        {/* Inline OTP verification for unverified users */}
+        {showInlineOtp && !user?.isVerified && (
+          <View style={[styles.inlineOtpContainer, { borderBottomColor: t.borderSubtle }]}>
+            <Text style={[styles.inlineOtpLabel, { color: t.textMuted }]}>
+              Enter the 6-digit OTP sent to your WhatsApp
+            </Text>
+            <PinInput value={inlineOtp} onChange={setInlineOtp} secure={false} error={!!inlineError} />
+            {!!inlineError && <Text style={styles.waError}>{inlineError}</Text>}
+            <GradientButton
+              title="Verify"
+              onPress={handleInlineVerify}
+              loading={inlineLoading}
+              style={styles.inlineOtpBtn}
+            />
+          </View>
+        )}
 
         {/* Date of Birth */}
         <View style={[styles.infoRow, { borderBottomColor: t.borderSubtle }]}>
@@ -295,55 +334,34 @@ export function ProfileScreen() {
         <Text style={[styles.footerText, { color: t.textMuted }]}>v{appVersion}</Text>
       </View>
 
-      {/* WhatsApp Change Modal */}
-      <Modal visible={showWhatsappModal} transparent animationType="fade">
+      {/* Change WhatsApp Number Modal (unverified users only) */}
+      <Modal visible={showChangeModal} transparent animationType="fade">
         <TouchableOpacity
-          style={styles.waOverlay}
-          onPress={() => setShowWhatsappModal(false)}
+          style={styles.modalOverlay}
+          onPress={() => setShowChangeModal(false)}
           activeOpacity={1}
         >
           <View
-            style={[styles.waCard, { backgroundColor: t.bgElevated, borderColor: t.border }]}
+            style={[styles.modalCard, { backgroundColor: t.bgElevated, borderColor: t.border }]}
             onStartShouldSetResponder={() => true}
           >
-            <Text style={[styles.waTitle, { color: t.text }]}>
-              {whatsappStep === 'phone' ? 'Change WhatsApp Number' : 'Verify OTP'}
+            <Text style={[styles.modalTitle, { color: t.text }]}>Change WhatsApp Number</Text>
+            <Text style={[styles.modalSubtitle, { color: t.textMuted }]}>
+              Enter your new WhatsApp number
             </Text>
-
-            {whatsappStep === 'phone' ? (
-              <>
-                <Text style={[styles.waSubtitle, { color: t.textMuted }]}>
-                  Enter your new WhatsApp number
-                </Text>
-                <PhoneInput
-                  countryCode={newCountryCode}
-                  phone={newPhone}
-                  onCountryCodeChange={setNewCountryCode}
-                  onPhoneChange={setNewPhone}
-                />
-                {!!waError && <Text style={styles.waError}>{waError}</Text>}
-                <GradientButton
-                  title="Send OTP"
-                  onPress={handleWhatsappChange}
-                  loading={waLoading}
-                  style={styles.waBtn}
-                />
-              </>
-            ) : (
-              <>
-                <Text style={[styles.waSubtitle, { color: t.textMuted }]}>
-                  Enter the 4-digit code sent to {newCountryCode} {newPhone}
-                </Text>
-                <PinInput value={otp} onChange={setOtp} error={!!waError} />
-                {!!waError && <Text style={styles.waError}>{waError}</Text>}
-                <GradientButton
-                  title="Verify"
-                  onPress={handleWhatsappVerify}
-                  loading={waLoading}
-                  style={styles.waBtn}
-                />
-              </>
-            )}
+            <PhoneInput
+              countryCode={newCountryCode}
+              phone={newPhone}
+              onCountryCodeChange={setNewCountryCode}
+              onPhoneChange={setNewPhone}
+            />
+            {!!changeError && <Text style={styles.waError}>{changeError}</Text>}
+            <GradientButton
+              title="Change Number"
+              onPress={handleChangeNumber}
+              loading={changeLoading}
+              style={styles.modalBtn}
+            />
           </View>
         </TouchableOpacity>
       </Modal>
@@ -372,7 +390,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: { fontSize: 22, fontWeight: '800', marginTop: 6, marginBottom: 2 },
-  statValueSmall: { fontSize: 12 },
+  statValueSmall: { fontSize: 12, flex: 1 },
+  statValueCenter: { textAlign: 'center' },
   statLabel: { fontSize: 11 },
   sectionTitle: {
     fontSize: 14,
@@ -401,6 +420,16 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 15, fontWeight: '500', marginTop: 2 },
   phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
   countryCode: { fontSize: 15, fontWeight: '500' },
+  phoneSeparator: { fontSize: 15, fontWeight: '300' },
+  inlineOtpContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    alignItems: 'center',
+    gap: 12,
+  },
+  inlineOtpLabel: { fontSize: 12, textAlign: 'center' },
+  inlineOtpBtn: { width: '100%', marginTop: 4 },
   verifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -433,20 +462,21 @@ const styles = StyleSheet.create({
   deleteText: { fontSize: 12, color: '#FF4444' },
   footer: { alignItems: 'center', marginTop: 24, gap: 8 },
   footerText: { fontSize: 11 },
-  waOverlay: {
+  badgeRow: { alignItems: 'flex-end', gap: 6 },
+  waError: { fontSize: 12, color: '#FF4444', textAlign: 'center', marginTop: 8 },
+  modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  waCard: {
+  modalCard: {
     width: 300,
     borderRadius: 20,
     borderWidth: 1,
     padding: 24,
   },
-  waTitle: { fontSize: 18, fontWeight: '700', marginBottom: 4, textAlign: 'center' },
-  waSubtitle: { fontSize: 13, marginBottom: 20, textAlign: 'center' },
-  waError: { fontSize: 12, color: '#FF4444', textAlign: 'center', marginTop: 8 },
-  waBtn: { width: '100%', marginTop: 16 },
+  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 4, textAlign: 'center' },
+  modalSubtitle: { fontSize: 13, marginBottom: 20, textAlign: 'center' },
+  modalBtn: { width: '100%', marginTop: 16 },
 });

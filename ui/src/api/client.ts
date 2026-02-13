@@ -18,6 +18,9 @@ import type {
   GenerateOtpResponse,
   Book,
   Chapter,
+  Report,
+  EditorPick,
+  TrendingList,
 } from '../types/admin';
 import type { SceneElement } from '../types/script';
 import { ElementType } from '../types/script';
@@ -281,6 +284,42 @@ export const genresApi = adminCrud<Genre>('/api/v1/admin/genres');
 export const authorsApi = adminCrud<Author>('/api/v1/admin/authors');
 export const narratorsApi = adminCrud<Narrator>('/api/v1/admin/narrators');
 export const usersApi = adminCrud<AppUser>('/api/v1/admin/users');
+
+export const trendingApi = {
+  list: async (): Promise<TrendingList[]> => {
+    const { data } = await client.get<TrendingList[]>('/api/v1/admin/trending');
+    return data;
+  },
+  set: async (languageId: string, sfwIds: string[], adultIds: string[]): Promise<void> => {
+    await client.put(`/api/v1/admin/trending/${languageId}`, {
+      book_ids_sfw: sfwIds,
+      book_ids_adult: adultIds,
+    });
+  },
+};
+
+export const editorPicksApi = {
+  list: async (): Promise<EditorPick[]> => {
+    const { data } = await client.get<EditorPick[]>('/api/v1/admin/editor-picks');
+    return data;
+  },
+  set: async (languageId: string, bookIdSfw: string, bookIdAdult: string | null): Promise<void> => {
+    await client.put(`/api/v1/admin/editor-picks/${languageId}`, {
+      book_id_sfw: bookIdSfw,
+      book_id_adult: bookIdAdult,
+    });
+  },
+};
+
+export const reportsApi = {
+  list: async (): Promise<Report[]> => {
+    const { data } = await client.get<Report[]>('/api/v1/admin/reports');
+    return data;
+  },
+  remove: async (id: string): Promise<void> => {
+    await client.delete(`/api/v1/admin/reports/${id}`);
+  },
+};
 
 export async function generateOtp(userId: string): Promise<GenerateOtpResponse> {
   const { data } = await client.post<GenerateOtpResponse>(

@@ -19,6 +19,9 @@ export interface ApiUser {
   status: string;
   preferred_languages: string[];
   created_at: string;
+  pending_whatsapp_number?: string;
+  pending_country_code?: string;
+  has_pending_whatsapp: boolean;
 }
 
 export async function register(

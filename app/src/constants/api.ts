@@ -1,4 +1,4 @@
-export const API_BASE = 'https://consolidation-psychiatry-kruger-immunology.trycloudflare.com';
+export const API_BASE = 'https://east-best-washington-steady.trycloudflare.com';
 
 export const ENDPOINTS = {
   auth: {
@@ -43,6 +43,7 @@ export const ENDPOINTS = {
 } as const;
 
 export const LEGAL_URLS = {
-  termsOfService: 'https://storyfone.com/terms',
-  privacyPolicy: 'https://storyfone.com/privacy',
+  termsOfService: process.env.EXPO_PUBLIC_TERMS_URL || 'https://storyfone.com/terms',
+  privacyPolicy: process.env.EXPO_PUBLIC_PRIVACY_URL || 'https://storyfone.com/privacy',
+  helpAndSupport: process.env.EXPO_PUBLIC_SUPPORT_URL || 'https://storyfone.com/support',
 } as const;

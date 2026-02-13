@@ -70,19 +70,19 @@ export function PhoneInput({ countryCode, phone, onCountryCodeChange, onPhoneCha
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 10 },
+  row: { flexDirection: 'row', gap: 8 },
   countryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
   },
-  flag: { fontSize: 18 },
-  code: { fontSize: 15, fontWeight: '500' },
-  input: { flex: 1, borderRadius: 12, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 14, fontSize: 18, letterSpacing: 1 },
+  flag: { fontSize: 16 },
+  code: { fontSize: 14, fontWeight: '500' },
+  input: { flex: 1, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15, letterSpacing: 0.5 },
   overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   pickerContainer: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: 400, paddingTop: 12, paddingBottom: 40 },
   pickerRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1 },

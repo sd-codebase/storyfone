@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   documentDirectory,
   getInfoAsync,
@@ -9,6 +8,8 @@ import {
   deleteAsync,
 } from 'expo-file-system/legacy';
 import { API_BASE, ENDPOINTS } from '../constants/api';
+import { useAuthStore } from './authStore';
+import { createUserScopedStorage } from '../utils/userStorage';
 import type { ApiChapterOut } from '../api/books';
 
 const DOWNLOAD_DIR = `${documentDirectory}downloads/`;
@@ -50,7 +51,8 @@ export const useDownloadStore = create<DownloadStore>()(
         const existing = get().downloads[bookId];
         if (existing?.status === 'downloading' || existing?.status === 'done') return;
 
-        const bookDir = `${DOWNLOAD_DIR}${bookId}/`;
+        const userId = useAuthStore.getState().user?.id ?? '';
+        const bookDir = `${DOWNLOAD_DIR}${userId}/${bookId}/`;
         await ensureDir(bookDir);
 
         const streamable = chapters.filter((ch) => ch.audio_hls);
@@ -74,7 +76,7 @@ export const useDownloadStore = create<DownloadStore>()(
               downloads: {
                 ...state.downloads,
                 [bookId]: {
-                  ...state.downloads[bookId],
+                  ...(state.downloads[bookId] ?? { bookId, totalChapters: streamable.length, status: 'downloading' }),
                   chapters: [...downloaded],
                   progress: (i + 1) / streamable.length,
                 },
@@ -85,27 +87,29 @@ export const useDownloadStore = create<DownloadStore>()(
           set((state) => ({
             downloads: {
               ...state.downloads,
-              [bookId]: { ...state.downloads[bookId], status: 'done', progress: 1 },
+              [bookId]: { ...(state.downloads[bookId] as BookDownload), status: 'done', progress: 1 },
             },
           }));
         } catch {
           set((state) => ({
             downloads: {
               ...state.downloads,
-              [bookId]: { ...state.downloads[bookId], status: 'error' },
+              [bookId]: { ...(state.downloads[bookId] as BookDownload), status: 'error' },
             },
           }));
         }
       },
 
       removeDownload: async (bookId) => {
-        const bookDir = `${DOWNLOAD_DIR}${bookId}/`;
+        const userId = useAuthStore.getState().user?.id ?? '';
+        const bookDir = `${DOWNLOAD_DIR}${userId}/${bookId}/`;
         try {
           await deleteAsync(bookDir, { idempotent: true });
         } catch {}
         set((state) => {
-          const { [bookId]: _, ...rest } = state.downloads;
-          return { downloads: rest };
+          const next = { ...state.downloads };
+          delete next[bookId];
+          return { downloads: next };
         });
       },
 
@@ -121,7 +125,7 @@ export const useDownloadStore = create<DownloadStore>()(
     }),
     {
       name: 'download-store',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => createUserScopedStorage()),
     },
   ),
 );
