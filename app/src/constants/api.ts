@@ -1,4 +1,4 @@
-export const API_BASE = 'https://fairfield-sandwich-cornwall-copies.trycloudflare.com';
+export const API_BASE = 'https://storyfoneapi.entranceexampracticezone.cloud';
 
 export const ENDPOINTS = {
   auth: {
