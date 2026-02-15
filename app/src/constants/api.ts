@@ -1,4 +1,4 @@
-export const API_BASE = 'https://east-best-washington-steady.trycloudflare.com';
+export const API_BASE = 'https://fairfield-sandwich-cornwall-copies.trycloudflare.com';
 
 export const ENDPOINTS = {
   auth: {
