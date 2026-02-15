@@ -23,7 +23,7 @@ export function TrendingCard({ book, rank, onPress }: Props) {
         </View>
         {book.is_adult && (
           <View style={styles.adultBadge}>
-            <EighteenPlus size={20} />
+            <EighteenPlus size={32} />
           </View>
         )}
       </View>

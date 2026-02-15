@@ -1,5 +1,5 @@
 import { Button, DatePicker, Form, Input, Select, Switch, Tag, Tooltip, message } from 'antd';
-import { WhatsAppOutlined } from '@ant-design/icons';
+import { WhatsAppOutlined, StopOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import CrudPage from '../CrudPage';
@@ -21,12 +21,29 @@ const statusColors: Record<string, string> = {
 
 const columns: ColumnsType<AppUser> = [
   { title: 'Name', dataIndex: 'name', key: 'name' },
-  { title: 'WhatsApp', dataIndex: 'whatsapp_number', key: 'whatsapp_number', width: 140 },
+  {
+    title: 'WhatsApp',
+    key: 'whatsapp_number',
+    width: 200,
+    render: (_, r) => r.country_code ? `+${r.country_code} ${r.whatsapp_number}` : r.whatsapp_number,
+  },
+  {
+    title: 'Birthdate',
+    dataIndex: 'birthdate',
+    key: 'birthdate',
+    width: 110,
+    render: (v: string | null) => v ? dayjs(v).format('DD MMM YYYY') : '—',
+  },
   {
     title: 'Age',
     key: 'age',
     width: 60,
-    render: (_, r) => calcAge(r.birthdate),
+    render: (_, r) => {
+      const age = calcAge(r.birthdate);
+      if (age === '—') return age;
+      const num = Number(age);
+      return <Tag color={num < 18 ? 'red' : 'green'}>{age}</Tag>;
+    },
   },
   {
     title: 'Plan',
@@ -83,6 +100,30 @@ const formFields = (
   </>
 );
 
+function ToggleStatusButton({ record, refresh }: { record: AppUser; refresh: () => void }) {
+  const isDisabled = record.status === 'disabled';
+  const handleToggle = async () => {
+    try {
+      await usersApi.update(record.id, { status: isDisabled ? 'active' : 'disabled' });
+      message.success(isDisabled ? 'User enabled' : 'User disabled');
+      refresh();
+    } catch {
+      message.error('Failed to update status');
+    }
+  };
+
+  return (
+    <Tooltip title={isDisabled ? 'Enable user' : 'Disable user'}>
+      <Button
+        icon={isDisabled ? <CheckCircleOutlined /> : <StopOutlined />}
+        size="small"
+        danger={!isDisabled}
+        onClick={handleToggle}
+      />
+    </Tooltip>
+  );
+}
+
 function SendOtpButton({ record, refresh }: { record: AppUser; refresh: () => void }) {
   const handleOtp = async () => {
     try {
@@ -110,7 +151,13 @@ export default function UsersPage() {
       api={usersApi}
       columns={columns}
       formFields={formFields}
-      extraActions={(record, refresh) => <SendOtpButton record={record} refresh={refresh} />}
+      extraActions={(record, refresh) => (
+        <>
+          <ToggleStatusButton record={record} refresh={refresh} />
+          <SendOtpButton record={record} refresh={refresh} />
+        </>
+      )}
+      canDelete={(record) => record.status === 'disabled' ? true : 'Disable the user first before deleting'}
     />
   );
 }

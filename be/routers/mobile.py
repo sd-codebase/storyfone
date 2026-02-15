@@ -143,7 +143,7 @@ async def register(body: AppRegisterRequest, db: AsyncIOMotorDatabase = Depends(
         "pin_encrypted": encrypt(body.pin),
         "is_adult": is_adult,
         "is_verified": False,
-        "plan": "Max",
+        "plan": "Pro",
         "status": "active",
         "preferred_languages": body.preferred_languages or [],
         "created_at": now,

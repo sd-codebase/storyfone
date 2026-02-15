@@ -12,6 +12,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from db import get_db
 from routers.admin_crud import make_crud_router
+from services.encryption import decrypt
 from schemas import (
     AuthorCreate, AuthorOut, AuthorUpdate,
     GenreCreate, GenreOut, GenreUpdate,
@@ -69,11 +70,18 @@ def _narrator_out(doc: Dict[str, Any]) -> NarratorOut:
 
 
 def _user_out(doc: Dict[str, Any]) -> UserOut:
+    birthdate = doc.get("birthdate")
+    if not birthdate and doc.get("birthdate_encrypted"):
+        try:
+            birthdate = decrypt(doc["birthdate_encrypted"])
+        except Exception:
+            birthdate = None
     return UserOut(
         id=str(doc["_id"]), name=doc["name"],
         whatsapp_number=doc["whatsapp_number"],
+        country_code=doc.get("country_code", ""),
         is_verified=doc.get("is_verified", False),
-        birthdate=doc.get("birthdate"),
+        birthdate=birthdate,
         plan=doc.get("plan", "Max"),
         status=doc.get("status", "active"),
         created_at=doc["created_at"], updated_at=doc["updated_at"],
@@ -127,13 +135,20 @@ otp_router = APIRouter(prefix="/api/v1/admin/users", tags=["users"])
 
 @otp_router.post("/{user_id}/generate-otp", response_model=GenerateOtpResponse)
 async def generate_otp(user_id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
+    # Try string _id first (nanoid from admin CRUD), then ObjectId (from mobile registration)
     user = await db.users.find_one({"_id": user_id})
+    if not user:
+        try:
+            user = await db.users.find_one({"_id": ObjectId(user_id)})
+        except Exception:
+            pass
     if not user:
         raise HTTPException(404, "User not found")
 
+    uid = user["_id"]
     otp = "".join(random.choices(string.digits, k=6))
     hashed = _sha256(otp)
-    await db.users.update_one({"_id": user_id}, {"$set": {"whatsapp_otp": hashed}})
+    await db.users.update_one({"_id": uid}, {"$set": {"whatsapp_otp": hashed}})
 
     number = user["whatsapp_number"]
     message = quote(f"Your Storyfone OTP is: {otp}")

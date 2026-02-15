@@ -22,7 +22,7 @@ export function GenreCard({ genre, onPress }: Props) {
     >
       {genre.is_adult && (
         <View style={styles.adultBadge}>
-          <EighteenPlus size={18} />
+          <EighteenPlus size={28} />
         </View>
       )}
       {IconComponent ? (

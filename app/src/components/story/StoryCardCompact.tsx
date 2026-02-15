@@ -24,7 +24,7 @@ export function StoryCardCompact({ book, onPress }: Props) {
         </View>
         {book.is_adult && (
           <View style={styles.adultBadge}>
-            <EighteenPlus size={20} />
+            <EighteenPlus size={28} />
           </View>
         )}
       </View>

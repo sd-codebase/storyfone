@@ -25,7 +25,7 @@ export function EditorPickBanner({ book, onPress }: Props) {
       >
         <View style={styles.labelRow}>
           <Text style={styles.label}>EDITOR'S PICK</Text>
-          {book.is_adult && <EighteenPlus size={22} color="rgba(255,255,255,0.8)" />}
+          {book.is_adult && <EighteenPlus size={28} />}
         </View>
         <View style={styles.content}>
           <BookCover thumbnailUrl={book.thumbnailUrl} title={book.title} size={{ width: 70, height: 90 }} fontSize={36} />

@@ -268,6 +268,7 @@ class UserOut(BaseModel):
     id: str
     name: str
     whatsapp_number: str
+    country_code: str
     is_verified: bool
     birthdate: Optional[str]
     plan: str

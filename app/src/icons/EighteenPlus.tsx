@@ -6,15 +6,15 @@ interface Props {
   color?: string;
 }
 
-export function EighteenPlus({ size = 28, color = '#DC2626' }: Props) {
+export function EighteenPlus({ size = 32, color = '#DC2626' }: Props) {
   return (
-    <Svg width={size} height={size * 0.65} viewBox="0 0 36 22">
-      <Rect x={0} y={0} width={36} height={22} rx={4} fill={color} />
+    <Svg width={size} height={size * 0.6} viewBox="0 0 40 24">
+      <Rect x={0} y={0} width={40} height={24} rx={5} fill={color} />
       <SvgText
-        x={18}
-        y={16}
+        x={20}
+        y={17.5}
         textAnchor="middle"
-        fontSize={13}
+        fontSize={15}
         fontWeight="bold"
         fill="#FFFFFF"
       >

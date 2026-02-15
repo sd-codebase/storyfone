@@ -30,7 +30,7 @@ export function StoryCard({ book, liked, onPress, onLikePress }: Props) {
           <Text style={[styles.title, { color: t.text }]} numberOfLines={1}>
             {book.title}
           </Text>
-          {book.is_adult && <EighteenPlus size={22} color={t.tag18} />}
+          {book.is_adult && <EighteenPlus size={32} />}
         </View>
         <Text style={[styles.author, { color: t.textSecondary }]}>{book.author}</Text>
         <View style={styles.metaRow}>

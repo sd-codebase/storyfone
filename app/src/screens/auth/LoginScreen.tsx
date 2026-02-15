@@ -122,7 +122,7 @@ export function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 28 },
-  content: { flex: 1, paddingTop: 40 },
+  content: { paddingTop: 40 },
   iconBox: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 16 },
   title: { fontSize: 22, fontWeight: '800', marginBottom: 8, textAlign: 'center' },
   subtitle: { fontSize: 14, lineHeight: 21, marginBottom: 28, textAlign: 'center' },
@@ -130,5 +130,5 @@ const styles = StyleSheet.create({
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 20 },
   toggleText: { fontSize: 13, fontWeight: '500' },
   error: { color: '#FF4444', fontSize: 13, textAlign: 'center', marginTop: 16 },
-  bottom: { paddingTop: 16 },
+  bottom: { paddingTop: 32 },
 });

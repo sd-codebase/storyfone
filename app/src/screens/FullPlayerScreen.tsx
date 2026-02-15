@@ -170,7 +170,7 @@ export function FullPlayerScreen() {
           </View>
           <View style={styles.rightActions}>
             {currentBook.is_adult && (
-              <View style={[styles.adultBadge, { backgroundColor: t.primary }]}>
+              <View style={styles.adultBadge}>
                 <Text style={styles.adultBadgeText}>18+</Text>
               </View>
             )}
@@ -285,7 +285,6 @@ export function FullPlayerScreen() {
             <TouchableOpacity
               style={[
                 styles.secondaryBtn,
-                downloading && styles.downloadingBtn,
                 downloaded && { borderColor: '#22C55E', borderWidth: 1 },
               ]}
               activeOpacity={0.7}
@@ -300,22 +299,14 @@ export function FullPlayerScreen() {
                 }
               }}
             >
-              {downloading ? (
-                <View style={styles.downloadProgressRing}>
-                  <Text style={[styles.downloadProgressText, { color: t.primary }]}>
-                    {Math.round(dlProgress * 100)}
-                  </Text>
-                </View>
-              ) : (
-                <Feather
-                  name={downloaded ? 'check-circle' : 'download'}
-                  size={16}
-                  color={downloaded ? '#22C55E' : t.textSecondary}
-                />
-              )}
-              {downloading && (
-                <Text style={[styles.secondaryLabel, { color: t.primary }]}>
-                  {Math.round(dlProgress * 100)}%
+              <Feather
+                name={downloaded ? 'check-circle' : 'download'}
+                size={downloaded ? 20 : 16}
+                color={downloaded ? '#22C55E' : downloading ? t.primary : t.textSecondary}
+              />
+              {!downloaded && (
+                <Text style={[styles.secondaryLabel, { color: downloading ? t.primary : t.textMuted }]}>
+                  {downloading ? `${Math.round(dlProgress * 100)}%` : 'Download'}
                 </Text>
               )}
             </TouchableOpacity>
@@ -495,8 +486,8 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
   titleContainer: { flex: 1 },
   rightActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  adultBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  adultBadgeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  adultBadge: { backgroundColor: '#DC2626', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  adultBadgeText: { fontSize: 13, fontWeight: '800', color: '#fff' },
   title: { fontSize: 22, fontWeight: '700', lineHeight: 28, flexShrink: 1 },
   author: { fontSize: 14, fontStyle: 'italic', marginTop: 4 },
   likeBtn: { marginTop: 4, padding: 4 },
@@ -554,6 +545,7 @@ const styles = StyleSheet.create({
   },
   secondaryBtn: {
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 2,
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -561,9 +553,6 @@ const styles = StyleSheet.create({
   },
   speedText: { fontSize: 14, fontWeight: '800' },
   secondaryLabel: { fontSize: 9, fontWeight: '600' },
-  downloadingBtn: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  downloadProgressRing: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: 'currentColor', alignItems: 'center', justifyContent: 'center' },
-  downloadProgressText: { fontSize: 7, fontWeight: '800' },
   visualizerRow: {
     alignItems: 'center',
     marginTop: 16,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
@@ -33,7 +33,10 @@ export function LanguageScreen() {
   useEffect(() => {
     getAvailableLanguages()
       .then(setLanguages)
-      .catch(() => {})
+      .catch((err) => {
+        console.warn('Failed to load languages:', err?.message || err);
+        Alert.alert('Error', 'Could not load languages. Please check your connection and try again.');
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -80,32 +83,30 @@ export function LanguageScreen() {
         {loading ? (
           <ActivityIndicator size="large" color={t.primary} style={{ marginTop: 40 }} />
         ) : (
-          <ScrollView showsVerticalScrollIndicator={false} style={styles.listWrap}>
-            <View style={styles.grid}>
-              {languages.map((lang) => {
-                const isActive = selected.includes(lang.id);
-                return (
-                  <TouchableOpacity
-                    key={lang.id}
-                    onPress={() => toggleLanguage(lang.id)}
-                    activeOpacity={0.7}
-                    style={[
-                      styles.langChip,
-                      {
-                        backgroundColor: isActive ? t.primary : t.bgCard,
-                        borderColor: isActive ? t.primary : t.borderSubtle,
-                      },
-                    ]}
-                  >
-                    <Feather name="check" size={14} color={isActive ? '#fff' : 'transparent'} />
-                    <Text style={[styles.langText, { color: isActive ? '#fff' : t.text }]}>
-                      {lang.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </ScrollView>
+          <View style={styles.grid}>
+            {languages.map((lang) => {
+              const isActive = selected.includes(lang.id);
+              return (
+                <TouchableOpacity
+                  key={lang.id}
+                  onPress={() => toggleLanguage(lang.id)}
+                  activeOpacity={0.7}
+                  style={[
+                    styles.langChip,
+                    {
+                      backgroundColor: isActive ? t.primary : t.bgCard,
+                      borderColor: isActive ? t.primary : t.borderSubtle,
+                    },
+                  ]}
+                >
+                  <Feather name="check" size={14} color={isActive ? '#fff' : 'transparent'} />
+                  <Text style={[styles.langText, { color: isActive ? '#fff' : t.text }]}>
+                    {lang.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         )}
       </View>
 
@@ -122,13 +123,12 @@ export function LanguageScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 28 },
-  content: { flex: 1, paddingTop: 40 },
+  content: { paddingTop: 40 },
   iconBox: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 16 },
   title: { fontSize: 22, fontWeight: '800', marginBottom: 8 },
   subtitle: { fontSize: 14, lineHeight: 21, marginBottom: 20 },
-  listWrap: { flex: 1 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   langChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
   langText: { fontSize: 15, fontWeight: '600' },
-  bottom: { paddingTop: 16 },
+  bottom: { paddingTop: 32 },
 });

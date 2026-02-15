@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import * as userApi from '../api/user';
+import { usePlayerStore } from './playerStore';
 import { createUserScopedStorage } from '../utils/userStorage';
 
 interface LockStore {
@@ -26,7 +27,10 @@ export const useLockStore = create<LockStore>()(
         if (valid) set({ isUnlocked: true });
         return valid;
       },
-      lock: () => set({ isUnlocked: false }),
+      lock: () => {
+        usePlayerStore.getState().dismiss();
+        set({ isUnlocked: false });
+      },
       checkHasPin: async () => {
         try {
           const has = await userApi.checkPinExists();

@@ -49,6 +49,7 @@ export interface AppUser {
   id: string;
   name: string;
   whatsapp_number: string;
+  country_code: string;
   is_verified: boolean;
   birthdate: string | null;
   plan: UserPlan;

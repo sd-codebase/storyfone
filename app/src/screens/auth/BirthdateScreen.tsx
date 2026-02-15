@@ -89,12 +89,12 @@ export function BirthdateScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 28 },
-  content: { flex: 1, paddingTop: 40 },
+  content: { paddingTop: 40 },
   iconBox: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 16 },
   title: { fontSize: 22, fontWeight: '800', marginBottom: 8 },
   subtitle: { fontSize: 14, lineHeight: 21, marginBottom: 28 },
   error: { color: '#FF4444', fontSize: 13, marginTop: 8 },
   ageNote: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 10, marginTop: 20 },
   ageNoteText: { flex: 1, fontSize: 12, lineHeight: 18 },
-  bottom: { paddingTop: 16 },
+  bottom: { paddingTop: 32 },
 });

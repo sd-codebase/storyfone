@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Type
 
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from nanoid import generate as nanoid
@@ -8,6 +9,17 @@ from pydantic import BaseModel
 from pymongo import ReturnDocument
 
 from db import get_db
+
+
+async def _find_doc(collection, item_id: str):
+    """Find a document by string _id first, then try ObjectId."""
+    doc = await collection.find_one({"_id": item_id})
+    if not doc:
+        try:
+            doc = await collection.find_one({"_id": ObjectId(item_id)})
+        except Exception:
+            pass
+    return doc
 
 
 def make_crud_router(
@@ -32,7 +44,7 @@ def make_crud_router(
 
     @router.get("/{item_id}", response_model=out_model)  # type: ignore[valid-type]
     async def get_item(item_id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
-        doc = await db[collection_name].find_one({"_id": item_id})
+        doc = await _find_doc(db[collection_name], item_id)
         if not doc:
             raise HTTPException(404, f"{tag} not found")
         return doc_to_out(doc)
@@ -57,6 +69,9 @@ def make_crud_router(
         body: update_model,  # type: ignore[valid-type]
         db: AsyncIOMotorDatabase = Depends(get_db),
     ):
+        doc = await _find_doc(db[collection_name], item_id)
+        if not doc:
+            raise HTTPException(404, f"{tag} not found")
         updates: Dict[str, Any] = {
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -65,19 +80,18 @@ def make_crud_router(
         if pre_update:
             updates = pre_update(updates)
         result = await db[collection_name].find_one_and_update(
-            {"_id": item_id},
+            {"_id": doc["_id"]},
             {"$set": updates},
             return_document=ReturnDocument.AFTER,
         )
-        if not result:
-            raise HTTPException(404, f"{tag} not found")
         return doc_to_out(result)
 
     @router.delete("/{item_id}")
     async def delete_item(item_id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
-        result = await db[collection_name].delete_one({"_id": item_id})
-        if result.deleted_count == 0:
+        doc = await _find_doc(db[collection_name], item_id)
+        if not doc:
             raise HTTPException(404, f"{tag} not found")
+        await db[collection_name].delete_one({"_id": doc["_id"]})
         return {"ok": True}
 
     return router

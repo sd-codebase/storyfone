@@ -214,4 +214,5 @@ export function useTrackPlayerSync() {
       }
     }
   }, [playbackState]);
+
 }

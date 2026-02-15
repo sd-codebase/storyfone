@@ -169,7 +169,7 @@ export function StoryDetailScreen() {
 
         {/* 18+ badge */}
         {book.is_adult && (
-          <View style={[styles.matureBadge, { top: insets.top + 8, backgroundColor: t.primary }]}>
+          <View style={[styles.matureBadge, { top: insets.top + 8 }]}>
             <Text style={styles.matureText}>18+</Text>
           </View>
         )}
@@ -333,7 +333,16 @@ export function StoryDetailScreen() {
                   </View>
                 )}
                 <TouchableOpacity
-                  onPress={() => isThisBookPlaying && playerChapterIndex === i ? pause() : (isThisBookLoaded && playerChapterIndex === i ? play() : handlePlayChapter(i))}
+                  onPress={() => {
+                    if (isThisBookPlaying && playerChapterIndex === i) {
+                      pause();
+                    } else if (isThisBookLoaded && playerChapterIndex === i) {
+                      play();
+                      nav.navigate('FullPlayer');
+                    } else {
+                      handlePlayChapter(i);
+                    }
+                  }}
                   style={[styles.chapterPlayBtn, { backgroundColor: t.primarySoft }]}
                   activeOpacity={0.7}
                 >
@@ -404,7 +413,16 @@ export function StoryDetailScreen() {
       >
         <GradientButton
           title={isThisBookPlaying ? '  Pause' : book.progress > 0 ? '  Continue Listening' : '  Start Listening'}
-          onPress={isThisBookPlaying ? pause : isThisBookLoaded ? play : handlePlay}
+          onPress={() => {
+            if (isThisBookPlaying) {
+              pause();
+            } else if (isThisBookLoaded) {
+              play();
+              nav.navigate('FullPlayer');
+            } else {
+              handlePlay();
+            }
+          }}
           disabled={loadingChapters || chapters.length === 0}
           style={styles.playBtn}
         />
@@ -439,12 +457,13 @@ const styles = StyleSheet.create({
   matureBadge: {
     position: 'absolute',
     right: 20,
-    paddingHorizontal: 10,
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
     zIndex: 10,
   },
-  matureText: { fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 1 },
+  matureText: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 1 },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'center',

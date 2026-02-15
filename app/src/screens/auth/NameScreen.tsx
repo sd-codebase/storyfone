@@ -65,10 +65,10 @@ export function NameScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 28 },
-  content: { flex: 1, paddingTop: 40 },
+  content: { paddingTop: 40 },
   iconBox: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 16 },
   title: { fontSize: 22, fontWeight: '800', marginBottom: 8 },
   subtitle: { fontSize: 14, lineHeight: 21, marginBottom: 28 },
   input: { borderRadius: 14, borderWidth: 1, paddingHorizontal: 20, paddingVertical: 16, fontSize: 18, fontWeight: '600' },
-  bottom: { paddingTop: 16 },
+  bottom: { paddingTop: 32 },
 });

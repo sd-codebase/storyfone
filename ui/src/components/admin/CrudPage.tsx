@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Button, Form, Modal, Popconfirm, Space, Table, message } from 'antd';
+import { Button, Form, Modal, Popconfirm, Space, Table, Tooltip, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -16,6 +16,7 @@ interface CrudPageProps<T extends { id: string }> {
   columns: ColumnsType<T>;
   formFields: React.ReactNode;
   extraActions?: (record: T, refresh: () => void) => React.ReactNode;
+  canDelete?: (record: T) => boolean | string;
 }
 
 export default function CrudPage<T extends { id: string }>({
@@ -24,6 +25,7 @@ export default function CrudPage<T extends { id: string }>({
   columns,
   formFields,
   extraActions,
+  canDelete,
 }: CrudPageProps<T>) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
@@ -91,15 +93,26 @@ export default function CrudPage<T extends { id: string }>({
       title: 'Actions',
       key: 'actions',
       width: 160,
-      render: (_, record) => (
-        <Space size="small">
-          <Button icon={<EditOutlined />} size="small" onClick={() => openEdit(record)} />
-          <Popconfirm title="Delete?" onConfirm={() => handleDelete(record.id)}>
-            <Button icon={<DeleteOutlined />} size="small" danger />
-          </Popconfirm>
-          {extraActions?.(record, refresh)}
-        </Space>
-      ),
+      render: (_, record) => {
+        const deleteCheck = canDelete ? canDelete(record) : true;
+        const deleteAllowed = deleteCheck === true;
+        const deleteTooltip = typeof deleteCheck === 'string' ? deleteCheck : undefined;
+        return (
+          <Space size="small">
+            <Button icon={<EditOutlined />} size="small" onClick={() => openEdit(record)} />
+            {deleteAllowed ? (
+              <Popconfirm title="Are you sure you want to delete?" onConfirm={() => handleDelete(record.id)}>
+                <Button icon={<DeleteOutlined />} size="small" danger />
+              </Popconfirm>
+            ) : (
+              <Tooltip title={deleteTooltip}>
+                <Button icon={<DeleteOutlined />} size="small" danger disabled />
+              </Tooltip>
+            )}
+            {extraActions?.(record, refresh)}
+          </Space>
+        );
+      },
     },
   ];
 

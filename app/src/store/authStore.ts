@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
+import { usePlayerStore } from './playerStore';
 import * as authApi from '../api/auth';
 import { getMe } from '../api/user';
 import type { ApiUser } from '../api/auth';
@@ -71,6 +72,7 @@ export const useAuthStore = create<AuthStore>()((set) => ({
   },
   setUser: (user) => set({ user }),
   logout: async () => {
+    usePlayerStore.getState().dismiss();
     await SecureStore.deleteItemAsync('auth_token');
     set({ token: null, user: null, isAuthenticated: false, isAdult: false });
   },
