@@ -26,16 +26,18 @@ export function LibraryScreen() {
   const nav = useNavigation<Nav>();
   const { isAdult } = useAuthStore();
   const { isUnlocked } = useLockStore();
-  const { getVisibleBooks } = useBookStore();
+  const books = useBookStore((s) => s.books);
   const { likedBookIds, toggleLike } = useLibraryStore();
 
   const [activeTab, setActiveTab] = useState<TabId>('listening');
 
   const progress = useLibraryStore((s) => s.listeningProgress);
-  const visibleBooks = getVisibleBooks(isAdult, isUnlocked);
+
+  // Use all books (no category/search filter) — Library shows everything the user has interacted with
+  const allVisible = books.filter((b) => !b.is_adult || (isAdult && isUnlocked));
 
   // Merge progress from libraryStore into books
-  const booksWithProgress = visibleBooks.map((b) => {
+  const booksWithProgress = allVisible.map((b) => {
     const p = progress[b.id];
     return p ? { ...b, progress: p.percent, currentChapter: p.chapterIndex + 1 } : b;
   });

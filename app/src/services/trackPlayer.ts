@@ -1,8 +1,11 @@
-import TrackPlayer, { Capability, Event } from 'react-native-track-player';
+import TrackPlayer, { Capability, Event, IOSCategoryMode, IOSCategory } from 'react-native-track-player';
 import { usePlayerStore } from '../store/playerStore';
 
 export async function setupPlayer() {
-  await TrackPlayer.setupPlayer();
+  await TrackPlayer.setupPlayer({
+    iosCategoryMode: IOSCategoryMode.SpokenAudio,
+    iosCategory: IOSCategory.Playback,
+  });
   await TrackPlayer.updateOptions({
     capabilities: [
       Capability.Play,
@@ -11,6 +14,13 @@ export async function setupPlayer() {
       Capability.SkipToPrevious,
       Capability.SeekTo,
       Capability.Stop,
+    ],
+    notificationCapabilities: [
+      Capability.Play,
+      Capability.Pause,
+      Capability.SkipToNext,
+      Capability.SkipToPrevious,
+      Capability.SeekTo,
     ],
     compactCapabilities: [Capability.Play, Capability.Pause, Capability.SkipToNext],
   });
