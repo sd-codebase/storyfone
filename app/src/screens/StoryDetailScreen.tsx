@@ -9,7 +9,6 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
-  Share,
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -114,13 +113,6 @@ export function StoryDetailScreen() {
     nav.navigate('FullPlayer');
   };
 
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Listen to "${book.title}" by ${book.author} on Storyfone!`,
-      });
-    } catch {}
-  };
 
   const handleDownload = () => {
     if (downloaded) {
@@ -237,13 +229,6 @@ export function StoryDetailScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actionRow}>
-          <TouchableOpacity
-            onPress={handleShare}
-            style={[styles.actionBtn, { backgroundColor: t.bgCard, borderColor: t.borderSubtle }]}
-            activeOpacity={0.7}
-          >
-            <Feather name="share-2" size={18} color={t.textSecondary} />
-          </TouchableOpacity>
           <TouchableOpacity
             onPress={handleDownload}
             style={[styles.actionBtn, { backgroundColor: t.bgCard, borderColor: downloading ? t.primary : downloaded ? '#22C55E' : t.borderSubtle }]}

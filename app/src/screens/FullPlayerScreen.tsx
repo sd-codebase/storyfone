@@ -313,12 +313,6 @@ export function FullPlayerScreen() {
           );
         })()}
 
-        {/* Share */}
-        <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.7}>
-          <Feather name="share-2" size={16} color={t.textSecondary} />
-          <Text style={[styles.secondaryLabel, { color: t.textMuted }]}>Share</Text>
-        </TouchableOpacity>
-
         {/* Rate */}
         <TouchableOpacity
           style={[styles.secondaryBtn, !canRate && { opacity: 0.35 }]}
