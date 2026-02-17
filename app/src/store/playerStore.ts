@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Book } from '../types/book';
 import type { ApiChapterOut } from '../api/books';
 import { API_BASE } from '../constants/api';
+import { useDownloadStore } from './downloadStore';
 
 type SleepTimerValue = null | 1 | 5 | 15 | 30 | 45 | 60 | 'chapter';
 
@@ -70,20 +71,24 @@ interface PlayerStore {
 }
 
 export function buildTracks(book: Book, chapters: ApiChapterOut[]) {
+  const dlStore = useDownloadStore.getState();
   return chapters
     .filter((ch) => ch.audio_hls)
-    .map((ch) => ({
-      id: ch.id,
-      url: ch.audio_hls!.startsWith('http') ? ch.audio_hls! : API_BASE + ch.audio_hls!,
-      title: ch.name,
-      artist: book.author,
-      artwork: book.thumbnailUrl
-        ? book.thumbnailUrl.startsWith('http')
-          ? book.thumbnailUrl
-          : API_BASE + book.thumbnailUrl
-        : undefined,
-      type: TrackType.HLS,
-    }));
+    .map((ch) => {
+      const localUri = dlStore.getLocalUri(ch.id, book.id);
+      return {
+        id: ch.id,
+        url: localUri ?? (ch.audio_hls!.startsWith('http') ? ch.audio_hls! : API_BASE + ch.audio_hls!),
+        title: ch.name,
+        artist: book.author,
+        artwork: book.thumbnailUrl
+          ? book.thumbnailUrl.startsWith('http')
+            ? book.thumbnailUrl
+            : API_BASE + book.thumbnailUrl
+          : undefined,
+        type: TrackType.HLS,
+      };
+    });
 }
 
 export const usePlayerStore = create<PlayerStore>()(

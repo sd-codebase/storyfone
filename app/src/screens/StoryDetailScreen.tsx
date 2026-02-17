@@ -121,7 +121,7 @@ export function StoryDetailScreen() {
         { text: 'Remove', style: 'destructive', onPress: () => removeDownload(book.id) },
       ]);
     } else if (!downloading && chapters.length > 0) {
-      downloadBook(book.id, chapters);
+      downloadBook(book, chapters);
     }
   };
 

@@ -37,9 +37,6 @@ export const ENDPOINTS = {
     progress: (bookId: string) => `/api/v1/app/library/progress/${bookId}`,
     allProgress: '/api/v1/app/library/progress',
   },
-  audio: {
-    stream: (id: string) => `/audio/stream/${id}`,
-  },
 } as const;
 
 export const LEGAL_URLS = {

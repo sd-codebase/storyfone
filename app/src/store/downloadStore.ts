@@ -6,11 +6,14 @@ import {
   makeDirectoryAsync,
   downloadAsync,
   deleteAsync,
+  readAsStringAsync,
+  writeAsStringAsync,
 } from 'expo-file-system/legacy';
-import { API_BASE, ENDPOINTS } from '../constants/api';
+import { API_BASE } from '../constants/api';
 import { useAuthStore } from './authStore';
 import { createUserScopedStorage } from '../utils/userStorage';
 import type { ApiChapterOut } from '../api/books';
+import type { Book } from '../types/book';
 
 const DOWNLOAD_DIR = `${documentDirectory}downloads/`;
 
@@ -21,6 +24,8 @@ interface ChapterDownload {
 
 interface BookDownload {
   bookId: string;
+  bookData: Book;
+  chaptersData: ApiChapterOut[];
   chapters: ChapterDownload[];
   totalChapters: number;
   progress: number;
@@ -29,9 +34,11 @@ interface BookDownload {
 
 interface DownloadStore {
   downloads: Record<string, BookDownload>;
-  downloadBook: (bookId: string, chapters: ApiChapterOut[]) => Promise<void>;
+  downloadBook: (book: Book, chapters: ApiChapterOut[]) => Promise<void>;
   removeDownload: (bookId: string) => Promise<void>;
   getLocalUri: (chapterId: string, bookId: string) => string | null;
+  getBookData: (bookId: string) => Book | null;
+  getChaptersData: (bookId: string) => ApiChapterOut[] | null;
   isDownloaded: (bookId: string) => boolean;
   isDownloading: (bookId: string) => boolean;
   getProgress: (bookId: string) => number;
@@ -42,12 +49,58 @@ async function ensureDir(path: string) {
   if (!info.exists) await makeDirectoryAsync(path, { intermediates: true });
 }
 
+async function downloadHlsChapter(
+  hlsPath: string,
+  localDir: string,
+): Promise<string> {
+  await ensureDir(localDir);
+
+  // Build full URL for the HLS playlist
+  const baseUrl = hlsPath.startsWith('http')
+    ? hlsPath.substring(0, hlsPath.lastIndexOf('/') + 1)
+    : API_BASE + hlsPath.substring(0, hlsPath.lastIndexOf('/') + 1);
+  const playlistUrl = hlsPath.startsWith('http') ? hlsPath : API_BASE + hlsPath;
+
+  // Download the m3u8 playlist
+  const localPlaylist = localDir + 'playlist.m3u8';
+  await downloadAsync(playlistUrl, localPlaylist);
+
+  // Read the playlist and find .ts segment filenames
+  const playlistContent = await readAsStringAsync(localPlaylist);
+  const lines = playlistContent.split('\n');
+  const segmentFiles: string[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      segmentFiles.push(trimmed);
+    }
+  }
+
+  // Download each segment
+  for (const segFile of segmentFiles) {
+    await downloadAsync(baseUrl + segFile, localDir + segFile);
+  }
+
+  // Rewrite playlist to use local file:// URIs
+  const rewrittenLines = lines.map((line) => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      return localDir + trimmed;
+    }
+    return line;
+  });
+  await writeAsStringAsync(localPlaylist, rewrittenLines.join('\n'));
+
+  return localPlaylist;
+}
+
 export const useDownloadStore = create<DownloadStore>()(
   persist(
     (set, get) => ({
       downloads: {},
 
-      downloadBook: async (bookId, chapters) => {
+      downloadBook: async (book, chapters) => {
+        const bookId = book.id;
         const existing = get().downloads[bookId];
         if (existing?.status === 'downloading' || existing?.status === 'done') return;
 
@@ -59,7 +112,15 @@ export const useDownloadStore = create<DownloadStore>()(
         set((state) => ({
           downloads: {
             ...state.downloads,
-            [bookId]: { bookId, chapters: [], totalChapters: streamable.length, progress: 0, status: 'downloading' },
+            [bookId]: {
+              bookId,
+              bookData: book,
+              chaptersData: chapters,
+              chapters: [],
+              totalChapters: streamable.length,
+              progress: 0,
+              status: 'downloading',
+            },
           },
         }));
 
@@ -67,16 +128,21 @@ export const useDownloadStore = create<DownloadStore>()(
         try {
           for (let i = 0; i < streamable.length; i++) {
             const ch = streamable[i];
-            const url = `${API_BASE}${ENDPOINTS.audio.stream(ch.id)}`;
-            const localUri = `${bookDir}${ch.id}.audio`;
-            await downloadAsync(url, localUri);
+            const chapterDir = `${bookDir}${ch.id}/`;
+            const localUri = await downloadHlsChapter(ch.audio_hls!, chapterDir);
             downloaded.push({ chapterId: ch.id, localUri });
 
             set((state) => ({
               downloads: {
                 ...state.downloads,
                 [bookId]: {
-                  ...(state.downloads[bookId] ?? { bookId, totalChapters: streamable.length, status: 'downloading' }),
+                  ...(state.downloads[bookId] ?? {
+                    bookId,
+                    bookData: book,
+                    chaptersData: chapters,
+                    totalChapters: streamable.length,
+                    status: 'downloading',
+                  }),
                   chapters: [...downloaded],
                   progress: (i + 1) / streamable.length,
                 },
@@ -117,6 +183,14 @@ export const useDownloadStore = create<DownloadStore>()(
         const dl = get().downloads[bookId];
         if (!dl || dl.status !== 'done') return null;
         return dl.chapters.find((c) => c.chapterId === chapterId)?.localUri ?? null;
+      },
+
+      getBookData: (bookId) => {
+        return get().downloads[bookId]?.bookData ?? null;
+      },
+
+      getChaptersData: (bookId) => {
+        return get().downloads[bookId]?.chaptersData ?? null;
       },
 
       isDownloaded: (bookId) => get().downloads[bookId]?.status === 'done',
