@@ -9,7 +9,6 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
-  Share,
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,6 +27,7 @@ import { GradientButton } from '../components/ui/GradientButton';
 import { BookCover } from '../components/ui/BookCover';
 import { RatingModal } from '../components/ui/RatingModal';
 import { useDownloadStore } from '../store/downloadStore';
+import { shareBook } from '../utils/shareBook';
 import { getChapters, reportBook, rateBook, getBookRating } from '../api/books';
 import type { ApiChapterOut } from '../api/books';
 import type { MainStackParamList } from '../types/navigation';
@@ -107,13 +107,7 @@ export function StoryDetailScreen() {
     nav.navigate('FullPlayer');
   };
 
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Listen to "${book.title}" by ${book.author} on Storyfone!`,
-      });
-    } catch {}
-  };
+  const handleShare = () => shareBook(book);
 
   const handleDownload = () => {
     if (downloaded) {

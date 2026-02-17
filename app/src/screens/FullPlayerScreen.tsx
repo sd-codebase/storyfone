@@ -20,6 +20,7 @@ import { AudioWave } from '../components/ui/AudioWave';
 import { BookCover } from '../components/ui/BookCover';
 import { RatingModal } from '../components/ui/RatingModal';
 import { formatTime } from '../utils/formatTime';
+import { shareBook } from '../utils/shareBook';
 import { rateBook, getBookRating } from '../api/books';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -314,7 +315,7 @@ export function FullPlayerScreen() {
         })()}
 
         {/* Share */}
-        <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.7} onPress={() => shareBook(currentBook)}>
           <Feather name="share-2" size={16} color={t.textSecondary} />
           <Text style={[styles.secondaryLabel, { color: t.textMuted }]}>Share</Text>
         </TouchableOpacity>
