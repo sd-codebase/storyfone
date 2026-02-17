@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Dimensions,
   Modal,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -15,7 +14,6 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
-import { useDownloadStore } from '../store/downloadStore';
 import { AudioWave } from '../components/ui/AudioWave';
 import { BookCover } from '../components/ui/BookCover';
 import { RatingModal } from '../components/ui/RatingModal';
@@ -59,7 +57,6 @@ export function FullPlayerScreen() {
   const chapters = usePlayerStore((s) => s.chapters);
 
   const canRate = usePlayerStore((s) => s.canRate);
-  const { downloadBook, isDownloaded, isDownloading, getProgress, removeDownload } = useDownloadStore();
 
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showSleepMenu, setShowSleepMenu] = useState(false);
@@ -274,44 +271,6 @@ export function FullPlayerScreen() {
             {sleepTimer ? (sleepTimer === 'chapter' ? 'Ch.' : `${sleepTimer}m`) : 'Sleep'}
           </Text>
         </TouchableOpacity>
-
-        {/* Download */}
-        {(() => {
-          const bookId = currentBook.id;
-          const downloaded = isDownloaded(bookId);
-          const downloading = isDownloading(bookId);
-          const dlProgress = getProgress(bookId);
-          return (
-            <TouchableOpacity
-              style={[
-                styles.secondaryBtn,
-                downloaded && { borderColor: '#22C55E', borderWidth: 1 },
-              ]}
-              activeOpacity={0.7}
-              onPress={() => {
-                if (downloaded) {
-                  Alert.alert('Remove Download', `Remove "${currentBook.title}" from downloads?`, [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Remove', style: 'destructive', onPress: () => removeDownload(bookId) },
-                  ]);
-                } else if (!downloading) {
-                  downloadBook(currentBook, chapters);
-                }
-              }}
-            >
-              <Feather
-                name={downloaded ? 'check-circle' : 'download'}
-                size={downloaded ? 20 : 16}
-                color={downloaded ? '#22C55E' : downloading ? t.primary : t.textSecondary}
-              />
-              {!downloaded && (
-                <Text style={[styles.secondaryLabel, { color: downloading ? t.primary : t.textMuted }]}>
-                  {downloading ? `${Math.round(dlProgress * 100)}%` : 'Download'}
-                </Text>
-              )}
-            </TouchableOpacity>
-          );
-        })()}
 
         {/* Rate */}
         <TouchableOpacity

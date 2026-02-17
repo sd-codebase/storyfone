@@ -26,7 +26,6 @@ import { ProgressBar } from '../components/ui/ProgressBar';
 import { GradientButton } from '../components/ui/GradientButton';
 import { BookCover } from '../components/ui/BookCover';
 import { RatingModal } from '../components/ui/RatingModal';
-import { useDownloadStore } from '../store/downloadStore';
 import { getChapters, reportBook, rateBook, getBookRating } from '../api/books';
 import type { ApiChapterOut } from '../api/books';
 import type { MainStackParamList } from '../types/navigation';
@@ -70,11 +69,6 @@ export function StoryDetailScreen() {
   const isThisBookLoaded = currentBookId === book.id;
   const isThisBookPlaying = isThisBookLoaded && isPlaying;
 
-  const { downloadBook, isDownloaded, isDownloading, getProgress, removeDownload } = useDownloadStore();
-  const downloaded = isDownloaded(book.id);
-  const downloading = isDownloading(book.id);
-  const dlProgress = getProgress(book.id);
-
   const [chapters, setChapters] = useState<ApiChapterOut[]>([]);
   const [loadingChapters, setLoadingChapters] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -113,17 +107,6 @@ export function StoryDetailScreen() {
     nav.navigate('FullPlayer');
   };
 
-
-  const handleDownload = () => {
-    if (downloaded) {
-      Alert.alert('Remove Download', `Remove "${book.title}" from downloads?`, [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove', style: 'destructive', onPress: () => removeDownload(book.id) },
-      ]);
-    } else if (!downloading && chapters.length > 0) {
-      downloadBook(book, chapters);
-    }
-  };
 
   const handleReport = async () => {
     const reason = reportReason.trim();
@@ -229,23 +212,6 @@ export function StoryDetailScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actionRow}>
-          <TouchableOpacity
-            onPress={handleDownload}
-            style={[styles.actionBtn, { backgroundColor: t.bgCard, borderColor: downloading ? t.primary : downloaded ? '#22C55E' : t.borderSubtle }]}
-            activeOpacity={0.7}
-          >
-            {downloading ? (
-              <Text style={[styles.dlProgressText, { color: t.primary }]}>
-                {Math.round(dlProgress * 100)}%
-              </Text>
-            ) : (
-              <Feather
-                name={downloaded ? 'check-circle' : 'download'}
-                size={18}
-                color={downloaded ? '#22C55E' : t.textSecondary}
-              />
-            )}
-          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => toggleLike(book.id)}
             style={[styles.actionBtn, { backgroundColor: t.bgCard, borderColor: t.borderSubtle }]}
@@ -565,7 +531,6 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   playBtn: { width: '100%' },
-  dlProgressText: { fontSize: 11, fontWeight: '700' },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

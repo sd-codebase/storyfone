@@ -12,7 +12,6 @@ import { useInactivityLock } from './src/hooks/useInactivityLock';
 import { setCurrentUserKey, clearCurrentUserKey } from './src/utils/userStorage';
 import { useLibraryStore } from './src/store/libraryStore';
 import { useLockStore } from './src/store/lockStore';
-import { useDownloadStore } from './src/store/downloadStore';
 
 function TrackPlayerSync() {
   useTrackPlayerSync();
@@ -42,12 +41,10 @@ export default function App() {
       setCurrentUserKey(user.id);
       useLibraryStore.persist.rehydrate();
       useLockStore.persist.rehydrate();
-      useDownloadStore.persist.rehydrate();
     } else {
       // Clear in-memory state so next user doesn't see stale data
       useLibraryStore.setState({ likedBookIds: [], listeningProgress: {} });
       useLockStore.setState({ isUnlocked: false, hasPin: false });
-      useDownloadStore.setState({ downloads: {} });
       clearCurrentUserKey();
     }
   }, [isAuthenticated, user?.id]);

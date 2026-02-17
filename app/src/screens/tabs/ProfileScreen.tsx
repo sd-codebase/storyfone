@@ -128,7 +128,6 @@ export function ProfileScreen() {
 
   const settingsItems: { icon: React.ComponentProps<typeof Feather>['name']; label: string; onPress?: () => void }[] = [
     { icon: mode === 'dark' ? 'sun' : 'moon', label: `Switch to ${mode === 'dark' ? 'Light' : 'Dark'} Mode`, onPress: toggleTheme },
-    { icon: 'download', label: 'Downloads', onPress: () => nav.navigate('Downloads') },
     { icon: 'lock', label: 'Privacy', onPress: () => Linking.openURL(LEGAL_URLS.privacyPolicy) },
     { icon: 'file-text', label: 'Terms of Use', onPress: () => Linking.openURL(LEGAL_URLS.termsOfService) },
     { icon: 'help-circle', label: 'Help & Support', onPress: () => Linking.openURL(LEGAL_URLS.helpAndSupport) },

@@ -49,7 +49,7 @@ export function useTrackPlayerSync() {
       const queue = await TrackPlayer.getQueue();
       if (queue.length > 0) return;
 
-      const tracks = buildTracks(session.currentBook, session.chapters);
+      const tracks = await buildTracks(session.currentBook, session.chapters);
       if (tracks.length === 0) return;
 
       await TrackPlayer.add(tracks);
