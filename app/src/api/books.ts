@@ -13,6 +13,7 @@ export interface ApiBookOut {
   thumbnail_url: string | null;
   chapter_count: number;
   listen_count: number;
+  likes_count: number;
   average_rating: number;
   rating_count: number;
   created_at: string;

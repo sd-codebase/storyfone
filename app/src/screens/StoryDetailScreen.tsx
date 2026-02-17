@@ -9,6 +9,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  Share,
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,13 +22,11 @@ import { useTheme } from '../hooks/useTheme';
 import { useLibraryStore } from '../store/libraryStore';
 import { usePlayerStore } from '../store/playerStore';
 import { SIZES } from '../constants/layout';
-import { StarRating } from '../components/ui/StarRating';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { GradientButton } from '../components/ui/GradientButton';
 import { BookCover } from '../components/ui/BookCover';
 import { RatingModal } from '../components/ui/RatingModal';
 import { useDownloadStore } from '../store/downloadStore';
-import { shareBook } from '../utils/shareBook';
 import { getChapters, reportBook, rateBook, getBookRating } from '../api/books';
 import type { ApiChapterOut } from '../api/books';
 import type { MainStackParamList } from '../types/navigation';
@@ -107,7 +106,13 @@ export function StoryDetailScreen() {
     nav.navigate('FullPlayer');
   };
 
-  const handleShare = () => shareBook(book);
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `Listen to "${book.title}" by ${book.author} on Storyfone!`,
+      });
+    } catch {}
+  };
 
   const handleDownload = () => {
     if (downloaded) {
@@ -137,7 +142,7 @@ export function StoryDetailScreen() {
     }
   };
 
-  const hasMetaRow = book.rating > 0 || !!book.listeners || !!book.duration;
+  const hasMetaRow = book.rating > 0 || !!book.listeners || !!book.likes || !!book.duration;
 
   return (
     <View style={[styles.container, { backgroundColor: t.bg }]}>
@@ -182,22 +187,40 @@ export function StoryDetailScreen() {
         {/* Meta row */}
         {(hasMetaRow || userRating > 0) && (
           <View style={styles.metaRow}>
-            {book.rating > 0 && <StarRating rating={book.rating} count={book.ratingCount} />}
-            {book.rating > 0 && !!book.listeners && <Text style={[styles.metaDot, { color: t.textMuted }]}>&bull;</Text>}
-            {!!book.listeners && <Text style={[styles.metaText, { color: t.textSecondary }]}>{book.listeners} listens</Text>}
-            {!!book.listeners && !!book.duration && <Text style={[styles.metaDot, { color: t.textMuted }]}>&bull;</Text>}
-            {!!book.duration && <Text style={[styles.metaText, { color: t.textSecondary }]}>{book.duration}</Text>}
+            <View style={styles.statsRow}>
+              {!!book.listeners && (
+                <View style={styles.statItem}>
+                  <Feather name="headphones" size={18} color={t.textMuted} />
+                  <Text style={[styles.statCount, { color: t.textMuted }]}>{book.listeners}</Text>
+                </View>
+              )}
+              {book.rating > 0 && (
+                <View style={styles.statItem}>
+                  <Feather name="star" size={18} color={t.textMuted} />
+                  <Text style={[styles.statCount, { color: t.textMuted }]}>{book.rating.toFixed(1)}</Text>
+                </View>
+              )}
+              {!!book.likes && (
+                <View style={styles.statItem}>
+                  <Feather name="heart" size={18} color={t.textMuted} />
+                  <Text style={[styles.statCount, { color: t.textMuted }]}>{book.likes}</Text>
+                </View>
+              )}
+              {!!book.duration && (
+                <View style={styles.statItem}>
+                  <Feather name="clock" size={18} color={t.textMuted} />
+                  <Text style={[styles.statCount, { color: t.textMuted }]}>{book.duration}</Text>
+                </View>
+              )}
+            </View>
             {userRating > 0 && (
-              <>
-                {(book.rating > 0 || !!book.listeners || !!book.duration) && <Text style={[styles.metaDot, { color: t.textMuted }]}>&bull;</Text>}
-                <TouchableOpacity
-                  onPress={() => canRate && currentBookId === book.id ? setShowRatingModal(true) : undefined}
-                  style={[styles.yourRatingBadge, { backgroundColor: t.primarySoft }]}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.yourRatingText, { color: t.primary }]}>Your: {userRating}/5</Text>
-                </TouchableOpacity>
-              </>
+              <TouchableOpacity
+                onPress={() => canRate && currentBookId === book.id ? setShowRatingModal(true) : undefined}
+                style={[styles.yourRatingBadge, { backgroundColor: t.primarySoft }]}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.yourRatingText, { color: t.primary }]}>Your: {userRating}/5</Text>
+              </TouchableOpacity>
             )}
           </View>
         )}
@@ -477,14 +500,12 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '700', lineHeight: 42 },
   author: { fontSize: 14, fontStyle: 'italic', marginTop: 8 },
   metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
     marginTop: 16,
+    gap: 12,
   },
-  metaDot: { fontSize: 12 },
-  metaText: { fontSize: 12 },
+  statsRow: { flexDirection: 'row', alignItems: 'center', gap: 24 },
+  statItem: { alignItems: 'center', gap: 4 },
+  statCount: { fontSize: 12 },
   yourRatingBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   yourRatingText: { fontSize: 11, fontWeight: '600' },
   tagRow: { flexDirection: 'row', gap: 8, marginTop: 16 },

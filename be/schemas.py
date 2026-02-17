@@ -360,6 +360,7 @@ class AppBookOut(BaseModel):
     thumbnail_url: Optional[str] = None
     chapter_count: int = 0
     listen_count: int = 0
+    likes_count: int = 0
     average_rating: float = 0
     rating_count: int = 0
     created_at: str
@@ -390,6 +391,7 @@ class AppGenreOut(BaseModel):
 
 class ToggleLikeResponse(BaseModel):
     liked: bool
+    likes_count: int = 0
 
 
 class LikedBooksResponse(BaseModel):

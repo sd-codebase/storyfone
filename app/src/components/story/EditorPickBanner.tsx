@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { BookCover } from '../ui/BookCover';
 import { EighteenPlus } from '../../icons';
@@ -13,7 +14,7 @@ interface Props {
 
 export function EditorPickBanner({ book, onPress }: Props) {
   const t = useTheme();
-  const hasStats = book.rating > 0 || !!book.listeners;
+  const hasStats = book.rating > 0 || !!book.listeners || !!book.likes;
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
@@ -34,9 +35,24 @@ export function EditorPickBanner({ book, onPress }: Props) {
             <Text style={styles.author}>by {book.author}</Text>
             {hasStats && (
               <View style={styles.statsRow}>
-                {book.rating > 0 && <Text style={styles.stat}>⭐ {book.rating}</Text>}
-                {book.rating > 0 && !!book.listeners && <Text style={styles.dot}>·</Text>}
-                {!!book.listeners && <Text style={styles.stat}>{book.listeners} listens</Text>}
+                {!!book.listeners && (
+                  <View style={styles.statItem}>
+                    <Feather name="headphones" size={14} color="rgba(255,255,255,0.8)" />
+                    <Text style={styles.statCount}>{book.listeners}</Text>
+                  </View>
+                )}
+                {book.rating > 0 && (
+                  <View style={styles.statItem}>
+                    <Feather name="star" size={14} color="rgba(255,255,255,0.8)" />
+                    <Text style={styles.statCount}>{book.rating.toFixed(1)}</Text>
+                  </View>
+                )}
+                {!!book.likes && (
+                  <View style={styles.statItem}>
+                    <Feather name="heart" size={14} color="rgba(255,255,255,0.8)" />
+                    <Text style={styles.statCount}>{book.likes}</Text>
+                  </View>
+                )}
               </View>
             )}
           </View>
@@ -54,7 +70,7 @@ const styles = StyleSheet.create({
   info: { flex: 1 },
   title: { fontSize: 22, fontWeight: '700', color: '#fff' },
   author: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontStyle: 'italic', marginTop: 4 },
-  statsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
-  stat: { fontSize: 12, color: 'rgba(255,255,255,0.9)' },
-  dot: { fontSize: 12, color: 'rgba(255,255,255,0.5)' },
+  statsRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 8 },
+  statItem: { alignItems: 'center', gap: 2 },
+  statCount: { fontSize: 10, color: 'rgba(255,255,255,0.9)' },
 });

@@ -14,7 +14,7 @@ interface ListeningProgress {
 interface LibraryStore {
   likedBookIds: string[];
   listeningProgress: Record<string, ListeningProgress>;
-  toggleLike: (bookId: string) => void;
+  toggleLike: (bookId: string) => Promise<void>;
   isLiked: (bookId: string) => boolean;
   updateProgress: (bookId: string, progress: ListeningProgress) => void;
   syncFromServer: () => Promise<void>;
@@ -25,22 +25,17 @@ export const useLibraryStore = create<LibraryStore>()(
     immer((set, get) => ({
       likedBookIds: [],
       listeningProgress: {},
-      toggleLike: (bookId) => {
-        // Optimistic local update
-        set((state) => {
-          const idx = state.likedBookIds.indexOf(bookId);
-          if (idx >= 0) state.likedBookIds.splice(idx, 1);
-          else state.likedBookIds.push(bookId);
-        });
-        // Fire API call (don't await — optimistic)
-        libraryApi.toggleLike(bookId).catch(() => {
-          // Revert on failure
+      toggleLike: async (bookId) => {
+        try {
+          const { liked } = await libraryApi.toggleLike(bookId);
           set((state) => {
             const idx = state.likedBookIds.indexOf(bookId);
-            if (idx >= 0) state.likedBookIds.splice(idx, 1);
-            else state.likedBookIds.push(bookId);
+            if (liked && idx < 0) state.likedBookIds.push(bookId);
+            if (!liked && idx >= 0) state.likedBookIds.splice(idx, 1);
           });
-        });
+        } catch {
+          // On failure, don't update — user sees no change
+        }
       },
       isLiked: (bookId) => get().likedBookIds.includes(bookId),
       updateProgress: (bookId, progress) => {

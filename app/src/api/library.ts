@@ -2,8 +2,8 @@ import api from './client';
 import { ENDPOINTS } from '../constants/api';
 
 export async function toggleLike(bookId: string) {
-  const { data } = await api.post<{ liked: boolean }>(ENDPOINTS.library.like(bookId));
-  return data.liked;
+  const { data } = await api.post<{ liked: boolean; likes_count: number }>(ENDPOINTS.library.like(bookId));
+  return data;
 }
 
 export async function getLikedBooks() {

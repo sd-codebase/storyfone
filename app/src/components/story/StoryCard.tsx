@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
-import { StarRating } from '../ui/StarRating';
 import { ProgressBar } from '../ui/ProgressBar';
 import { BookCover } from '../ui/BookCover';
 import { EighteenPlus } from '../../icons';
@@ -39,13 +38,24 @@ export function StoryCard({ book, liked, onPress, onLikePress }: Props) {
           {!!book.duration && <Text style={[styles.meta, { color: t.textMuted }]}>{book.duration}</Text>}
         </View>
         <View style={styles.bottomRow}>
-          {book.rating > 0 ? <StarRating rating={book.rating} count={book.ratingCount} /> : <View />}
-          <View style={styles.actions}>
-            {!!book.listeners && <Text style={[styles.listeners, { color: t.textMuted }]}>{book.listeners} listens</Text>}
-            <TouchableOpacity onPress={onLikePress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="heart" size={16} color={liked ? t.primary : t.textMuted} fill={liked ? t.primary : 'none'} />
+          {!!book.listeners && (
+            <View style={styles.statItem}>
+              <Feather name="headphones" size={14} color={t.textMuted} />
+              <Text style={[styles.statCount, { color: t.textMuted }]}>{book.listeners}</Text>
+            </View>
+          )}
+          {book.rating > 0 && (
+            <View style={styles.statItem}>
+              <Feather name="star" size={14} color={t.textMuted} />
+              <Text style={[styles.statCount, { color: t.textMuted }]}>{book.rating.toFixed(1)}</Text>
+            </View>
+          )}
+          {(!!book.likes || liked) && (
+            <TouchableOpacity onPress={onLikePress} style={styles.statItem} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Feather name="heart" size={14} color={liked ? t.primary : t.textMuted} />
+              <Text style={[styles.statCount, { color: liked ? t.primary : t.textMuted }]}>{book.likes || 0}</Text>
             </TouchableOpacity>
-          </View>
+          )}
         </View>
         {book.progress > 0 && (
           <View style={styles.progressWrap}>
@@ -65,8 +75,8 @@ const styles = StyleSheet.create({
   author: { fontSize: 12, fontStyle: 'italic', marginTop: 3 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   meta: { fontSize: 11 },
-  bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  listeners: { fontSize: 11 },
+  bottomRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 6 },
+  statItem: { alignItems: 'center', gap: 2 },
+  statCount: { fontSize: 10 },
   progressWrap: { marginTop: 8 },
 });

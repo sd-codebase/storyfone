@@ -109,6 +109,7 @@ def _book_doc_to_out(doc: dict, ch_count: int, author_map: dict) -> AppBookOut:
         thumbnail_url=doc.get("thumbnail_url"),
         chapter_count=ch_count,
         listen_count=doc.get("listen_count", 0),
+        likes_count=doc.get("likes_count", 0),
         average_rating=doc.get("average_rating", 0),
         rating_count=doc.get("rating_count", 0),
         created_at=doc.get("created_at", ""),
@@ -690,8 +691,8 @@ async def toggle_like(
             {"_id": doc["_id"]},
             {"$set": {"liked": new_liked, "updated_at": now}},
         )
-        return ToggleLikeResponse(liked=new_liked)
     else:
+        new_liked = True
         await db.user_library.insert_one({
             "user_id": uid,
             "book_id": book_id,
@@ -699,7 +700,23 @@ async def toggle_like(
             "progress": None,
             "updated_at": now,
         })
-        return ToggleLikeResponse(liked=True)
+
+    # Update likes_count on the book document
+    inc_val = 1 if new_liked else -1
+    await db.books.update_one(
+        {"_id": ObjectId(book_id)},
+        {"$inc": {"likes_count": inc_val}},
+    )
+    # Clamp to >= 0
+    await db.books.update_one(
+        {"_id": ObjectId(book_id), "likes_count": {"$lt": 0}},
+        {"$set": {"likes_count": 0}},
+    )
+    # Read back likes_count
+    book_doc = await db.books.find_one({"_id": ObjectId(book_id)}, {"likes_count": 1})
+    likes_count = book_doc.get("likes_count", 0) if book_doc else 0
+
+    return ToggleLikeResponse(liked=new_liked, likes_count=likes_count)
 
 
 @protected_router.get("/library/liked", response_model=LikedBooksResponse)

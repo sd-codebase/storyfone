@@ -26,6 +26,7 @@ function mapApiBook(b: ApiBookOut, genreMap: Record<string, string>): Book {
     duration: '',
     progress: 0,
     listeners: formatCount(b.listen_count),
+    likes: formatCount(b.likes_count),
     is_adult: b.is_adult,
     chapters: b.chapter_count,
     currentChapter: 0,

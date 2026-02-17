@@ -13,6 +13,7 @@ export interface Book {
   ratingCount: number;
   duration: string;
   listeners: string;
+  likes: string;
   progress: number;
   currentChapter: number;
 }
