@@ -295,7 +295,7 @@ export function FullPlayerScreen() {
                     { text: 'Remove', style: 'destructive', onPress: () => removeDownload(bookId) },
                   ]);
                 } else if (!downloading) {
-                  downloadBook(bookId, chapters);
+                  downloadBook(currentBook, chapters);
                 }
               }}
             >

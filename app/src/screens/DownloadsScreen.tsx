@@ -66,7 +66,7 @@ export function DownloadsScreen() {
         />
       ) : (
         downloadEntries.map((dl) => {
-          const book = books.find((b) => b.id === dl.bookId);
+          const book = books.find((b) => b.id === dl.bookId) || dl.bookData || null;
           const title = book?.title || 'Unknown';
           const author = book?.author || '';
 
