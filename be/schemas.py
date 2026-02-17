@@ -246,7 +246,7 @@ class UserCreate(BaseModel):
     name: str
     whatsapp_number: str
     is_verified: bool = False
-    birthdate: Optional[str] = None
+    birth_year: Optional[int] = None
     plan: str = "Max"
     whatsapp_otp: Optional[str] = None
     pin: Optional[str] = None
@@ -257,7 +257,7 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     whatsapp_number: Optional[str] = None
     is_verified: Optional[bool] = None
-    birthdate: Optional[str] = None
+    birth_year: Optional[int] = None
     plan: Optional[str] = None
     whatsapp_otp: Optional[str] = None
     pin: Optional[str] = None
@@ -270,7 +270,7 @@ class UserOut(BaseModel):
     whatsapp_number: str
     country_code: str
     is_verified: bool
-    birthdate: Optional[str]
+    birth_year: Optional[int]
     plan: str
     status: str
     created_at: str
@@ -288,7 +288,7 @@ class GenerateOtpResponse(BaseModel):
 class AppRegisterRequest(BaseModel):
     whatsapp_number: str
     country_code: str
-    birthdate: str  # "YYYY-MM-DD"
+    birth_year: int
     pin: str
     name: str = ""
     preferred_languages: Optional[List[str]] = None
@@ -305,7 +305,7 @@ class AppUserOut(BaseModel):
     name: str
     whatsapp_number: str
     country_code: str
-    birthdate: str
+    birth_year: int
     is_adult: bool
     is_verified: bool
     plan: str

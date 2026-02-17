@@ -22,7 +22,7 @@ export function LanguageScreen() {
   const t = useTheme();
   const nav = useNavigation<Nav>();
   const route = useRoute<LanguageRoute>();
-  const { phone, countryCode, birthdate, pin, name } = route.params;
+  const { phone, countryCode, birthYear, pin, name } = route.params;
   const insets = useSafeAreaInsets();
 
   const [languages, setLanguages] = useState<LanguageOption[]>([]);
@@ -50,7 +50,7 @@ export function LanguageScreen() {
     if (selected.length === 0) return;
     setRegistering(true);
     try {
-      await useAuthStore.getState().register(phone, countryCode, birthdate, pin, name, selected);
+      await useAuthStore.getState().register(phone, countryCode, parseInt(birthYear), pin, name, selected);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
         Alert.alert('Account Exists', 'An account with this number already exists. Please sign in.', [

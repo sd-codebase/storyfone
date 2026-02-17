@@ -272,13 +272,13 @@ export function ProfileScreen() {
           </View>
         )}
 
-        {/* Date of Birth */}
+        {/* Birth Year */}
         <View style={[styles.infoRow, { borderBottomColor: t.borderSubtle }]}>
           <Feather name="calendar" size={16} color={t.textSecondary} />
           <View style={styles.infoContent}>
-            <Text style={[styles.infoLabel, { color: t.textMuted }]}>DATE OF BIRTH</Text>
+            <Text style={[styles.infoLabel, { color: t.textMuted }]}>BIRTH YEAR</Text>
             <Text style={[styles.infoValue, { color: t.text }]}>
-              {user?.dob || '••/••/••••'}
+              {user?.birthYear || '••••'}
             </Text>
           </View>
         </View>

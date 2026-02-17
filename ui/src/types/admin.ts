@@ -51,7 +51,7 @@ export interface AppUser {
   whatsapp_number: string;
   country_code: string;
   is_verified: boolean;
-  birthdate: string | null;
+  birth_year: number | null;
   plan: UserPlan;
   status: UserStatus;
   created_at: string;

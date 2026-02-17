@@ -19,7 +19,7 @@ export function PinSetupScreen() {
   const t = useTheme();
   const nav = useNavigation<Nav>();
   const route = useRoute<PinSetupRoute>();
-  const { phone, countryCode, birthdate } = route.params;
+  const { phone, countryCode, birthYear } = route.params;
   const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState<'create' | 'confirm'>('create');
@@ -52,7 +52,7 @@ export function PinSetupScreen() {
     }
 
     // Navigate to Name screen instead of registering
-    nav.navigate('Name', { phone, countryCode, birthdate, pin: pinValue });
+    nav.navigate('Name', { phone, countryCode, birthYear, pin: pinValue });
   };
 
   const title = step === 'create' ? 'Create Your PIN' : 'Confirm Your PIN';

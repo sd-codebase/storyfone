@@ -10,9 +10,9 @@ export type AuthStackParamList = {
   Phone: undefined;
   Birthdate: { phone: string; countryCode: string };
   Login: undefined;
-  PinSetup: { phone: string; countryCode: string; birthdate: string };
-  Name: { phone: string; countryCode: string; birthdate: string; pin: string };
-  Language: { phone: string; countryCode: string; birthdate: string; pin: string; name: string };
+  PinSetup: { phone: string; countryCode: string; birthYear: string };
+  Name: { phone: string; countryCode: string; birthYear: string; pin: string };
+  Language: { phone: string; countryCode: string; birthYear: string; pin: string; name: string };
 };
 
 export type MainStackParamList = {

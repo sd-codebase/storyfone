@@ -12,7 +12,7 @@ export interface ApiUser {
   name: string;
   whatsapp_number: string;
   country_code: string;
-  birthdate: string;
+  birth_year: number;
   is_adult: boolean;
   is_verified: boolean;
   plan: string;
@@ -27,7 +27,7 @@ export interface ApiUser {
 export async function register(
   whatsapp_number: string,
   country_code: string,
-  birthdate: string,
+  birth_year: number,
   pin: string,
   name: string,
   preferred_languages: string[],
@@ -35,7 +35,7 @@ export async function register(
   const { data } = await api.post<AuthResponse>(ENDPOINTS.auth.register, {
     whatsapp_number,
     country_code,
-    birthdate,
+    birth_year,
     pin,
     name,
     preferred_languages,

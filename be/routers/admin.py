@@ -70,18 +70,20 @@ def _narrator_out(doc: Dict[str, Any]) -> NarratorOut:
 
 
 def _user_out(doc: Dict[str, Any]) -> UserOut:
-    birthdate = doc.get("birthdate")
-    if not birthdate and doc.get("birthdate_encrypted"):
+    # Resolve birth_year: prefer new field, fallback to old birthdate_encrypted
+    birth_year = doc.get("birth_year")
+    if birth_year is None and doc.get("birthdate_encrypted"):
         try:
-            birthdate = decrypt(doc["birthdate_encrypted"])
+            bd_str = decrypt(doc["birthdate_encrypted"])
+            birth_year = int(bd_str.split("-")[0])
         except Exception:
-            birthdate = None
+            birth_year = None
     return UserOut(
         id=str(doc["_id"]), name=doc["name"],
         whatsapp_number=doc["whatsapp_number"],
         country_code=doc.get("country_code", ""),
         is_verified=doc.get("is_verified", False),
-        birthdate=birthdate,
+        birth_year=birth_year,
         plan=doc.get("plan", "Max"),
         status=doc.get("status", "active"),
         created_at=doc["created_at"], updated_at=doc["updated_at"],

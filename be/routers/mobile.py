@@ -53,7 +53,18 @@ def _user_to_out(doc: dict) -> AppUserOut:
         local_number = full_number[len(country_code):]
     else:
         local_number = full_number
-    birthdate = decrypt(doc["birthdate_encrypted"]) if doc.get("birthdate_encrypted") else doc.get("birthdate", "")
+
+    # Resolve birth_year: prefer new field, fallback to old birthdate_encrypted
+    birth_year = doc.get("birth_year")
+    if birth_year is None and doc.get("birthdate_encrypted"):
+        try:
+            bd_str = decrypt(doc["birthdate_encrypted"])
+            birth_year = int(bd_str.split("-")[0])
+        except Exception:
+            birth_year = 0
+
+    if birth_year is None:
+        birth_year = 0
 
     # has_pending_whatsapp: true if admin has set an OTP waiting for verification
     has_pending = bool(doc.get("whatsapp_otp"))
@@ -63,7 +74,7 @@ def _user_to_out(doc: dict) -> AppUserOut:
         name=doc.get("name", ""),
         whatsapp_number=local_number,
         country_code=country_code,
-        birthdate=birthdate,
+        birth_year=birth_year,
         is_adult=doc.get("is_adult", False),
         is_verified=doc.get("is_verified", False),
         plan=doc.get("plan", "Max"),
@@ -74,13 +85,10 @@ def _user_to_out(doc: dict) -> AppUserOut:
     )
 
 
-def _calc_is_adult(birthdate_str: str) -> bool:
-    """Return True if 18+ based on YYYY-MM-DD birthdate."""
+def _calc_is_adult(birth_year: int) -> bool:
+    """Return True if 18+ based on birth year."""
     try:
-        bd = date.fromisoformat(birthdate_str)
-        today = date.today()
-        age = today.year - bd.year - ((today.month, today.day) < (bd.month, bd.day))
-        return age >= 18
+        return date.today().year - birth_year >= 18
     except (ValueError, TypeError):
         return False
 
@@ -131,7 +139,7 @@ async def register(body: AppRegisterRequest, db: AsyncIOMotorDatabase = Depends(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Already registered")
 
     now = datetime.utcnow().isoformat()
-    is_adult = _calc_is_adult(body.birthdate)
+    is_adult = _calc_is_adult(body.birth_year)
 
     doc = {
         "name": body.name,
@@ -139,7 +147,7 @@ async def register(body: AppRegisterRequest, db: AsyncIOMotorDatabase = Depends(
         "whatsapp_encrypted": encrypt(full_number),
         "whatsapp_hash": wh,
         "country_code": body.country_code,
-        "birthdate_encrypted": encrypt(body.birthdate),
+        "birth_year": body.birth_year,
         "pin_encrypted": encrypt(body.pin),
         "is_adult": is_adult,
         "is_verified": False,

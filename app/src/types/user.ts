@@ -3,7 +3,7 @@ export interface AppUser {
   name: string;
   whatsapp: string;
   countryCode: string;
-  dob: string;
+  birthYear: number;
   plan: string;
   memberSince: string;
 }

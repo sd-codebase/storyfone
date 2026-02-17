@@ -18,12 +18,12 @@ export function NameScreen() {
   const t = useTheme();
   const nav = useNavigation<Nav>();
   const route = useRoute<NameRoute>();
-  const { phone, countryCode, birthdate, pin } = route.params;
+  const { phone, countryCode, birthYear, pin } = route.params;
   const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
 
   const handleContinue = () => {
-    nav.navigate('Language', { phone, countryCode, birthdate, pin, name: name.trim() });
+    nav.navigate('Language', { phone, countryCode, birthYear, pin, name: name.trim() });
   };
 
   return (

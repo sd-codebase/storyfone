@@ -10,7 +10,7 @@ interface AppUser {
   name: string;
   whatsapp: string;
   countryCode: string;
-  dob: string;
+  birthYear: number;
   plan: string;
   memberSince: string;
   isVerified: boolean;
@@ -22,12 +22,6 @@ interface AppUser {
 }
 
 function mapApiUser(u: ApiUser): AppUser {
-  // birthdate "YYYY-MM-DD" → "DD MMM, YYYY" for display
-  let dob = u.birthdate;
-  if (dob && dob.includes('-')) {
-    const dt = new Date(dob + 'T00:00:00');
-    dob = dt.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
   const memberSince = u.created_at
     ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : '';
@@ -36,7 +30,7 @@ function mapApiUser(u: ApiUser): AppUser {
     name: u.name || 'Night Listener',
     whatsapp: u.whatsapp_number,
     countryCode: u.country_code,
-    dob,
+    birthYear: u.birth_year,
     plan: u.plan,
     memberSince,
     isVerified: u.is_verified,
@@ -57,7 +51,7 @@ interface AuthStore {
   setUser: (user: AppUser) => void;
   logout: () => void;
   loadToken: () => Promise<void>;
-  register: (whatsapp: string, countryCode: string, birthdate: string, pin: string, name: string, preferredLanguages: string[]) => Promise<void>;
+  register: (whatsapp: string, countryCode: string, birthYear: number, pin: string, name: string, preferredLanguages: string[]) => Promise<void>;
   loginWithPhone: (whatsapp: string, countryCode: string, pin: string) => Promise<void>;
 }
 
@@ -88,8 +82,8 @@ export const useAuthStore = create<AuthStore>()((set) => ({
       set({ token: null, isAuthenticated: false });
     }
   },
-  register: async (whatsapp, countryCode, birthdate, pin, name, preferredLanguages) => {
-    const res = await authApi.register(whatsapp, countryCode, birthdate, pin, name, preferredLanguages);
+  register: async (whatsapp, countryCode, birthYear, pin, name, preferredLanguages) => {
+    const res = await authApi.register(whatsapp, countryCode, birthYear, pin, name, preferredLanguages);
     await SecureStore.setItemAsync('auth_token', res.access_token);
     set({
       token: res.access_token,

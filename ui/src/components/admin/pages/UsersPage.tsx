@@ -1,16 +1,14 @@
-import { Button, DatePicker, Form, Input, Select, Switch, Tag, Tooltip, message } from 'antd';
+import { Button, Form, Input, InputNumber, Select, Switch, Tag, Tooltip, message } from 'antd';
 import { WhatsAppOutlined, StopOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import dayjs from 'dayjs';
 import CrudPage from '../CrudPage';
 import { usersApi, generateOtp } from '../../../api/client';
 import type { AppUser } from '../../../types/admin';
 import { UserPlan, UserStatus } from '../../../types/admin';
 
-function calcAge(birthdate: string | null): string {
-  if (!birthdate) return '—';
-  const diff = Date.now() - new Date(birthdate).getTime();
-  return String(Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000)));
+function calcAge(birthYear: number | null): string {
+  if (!birthYear) return '—';
+  return String(new Date().getFullYear() - birthYear);
 }
 
 const statusColors: Record<string, string> = {
@@ -28,18 +26,18 @@ const columns: ColumnsType<AppUser> = [
     render: (_, r) => r.country_code ? `+${r.country_code} ${r.whatsapp_number}` : r.whatsapp_number,
   },
   {
-    title: 'Birthdate',
-    dataIndex: 'birthdate',
-    key: 'birthdate',
+    title: 'Birth Year',
+    dataIndex: 'birth_year',
+    key: 'birth_year',
     width: 110,
-    render: (v: string | null) => v ? dayjs(v).format('DD MMM YYYY') : '—',
+    render: (v: number | null) => v ? String(v) : '—',
   },
   {
     title: 'Age',
     key: 'age',
     width: 60,
     render: (_, r) => {
-      const age = calcAge(r.birthdate);
+      const age = calcAge(r.birth_year);
       if (age === '—') return age;
       const num = Number(age);
       return <Tag color={num < 18 ? 'red' : 'green'}>{age}</Tag>;
@@ -67,6 +65,8 @@ const columns: ColumnsType<AppUser> = [
   },
 ];
 
+const currentYear = new Date().getFullYear();
+
 const formFields = (
   <>
     <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name is required' }]}>
@@ -79,8 +79,8 @@ const formFields = (
     >
       <Input placeholder="91XXXXXXXXXX" />
     </Form.Item>
-    <Form.Item name="birthdate" label="Birthdate" getValueProps={(v) => ({ value: v ? dayjs(v) : undefined })} normalize={(v) => v?.format('YYYY-MM-DD') ?? null}>
-      <DatePicker style={{ width: '100%' }} />
+    <Form.Item name="birth_year" label="Birth Year">
+      <InputNumber min={1920} max={currentYear} style={{ width: '100%' }} placeholder="e.g. 1995" />
     </Form.Item>
     <Form.Item name="plan" label="Plan" initialValue={UserPlan.MAX}>
       <Select options={Object.values(UserPlan).map((p) => ({ label: p, value: p }))} />
