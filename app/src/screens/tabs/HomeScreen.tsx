@@ -31,7 +31,7 @@ export function HomeScreen() {
   const { isAdult, user } = useAuthStore();
   const { isUnlocked, lock } = useLockStore();
   const { searchQuery, selectedCategory, setSearchQuery, setCategory, getVisibleBooks, getVisibleCategories, fetchBooks, fetchTrending, fetchMoreBooks, trendingBooks, isLoading, hasMore, searchBooks, searchResults, isSearching } = useBookStore();
-  const { likedBookIds, toggleLike } = useLibraryStore();
+  const { likedBookIds } = useLibraryStore();
   const progress = useLibraryStore((s) => s.listeningProgress);
   const toggleTheme = useThemeStore((s) => s.toggle);
   const currentPlayingBookId = usePlayerStore((s) => s.currentBook?.id);
@@ -251,7 +251,6 @@ export function HomeScreen() {
             book={book}
             liked={likedBookIds.includes(book.id)}
             onPress={() => openDetail(book)}
-            onLikePress={() => toggleLike(book.id)}
           />
         ))}
         {!isSearching && filteredBooks.length === 0 && <EmptyState icon="search" title="No stories found" subtitle="Try a different search or category" />}

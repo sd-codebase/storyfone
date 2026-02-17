@@ -25,8 +25,7 @@ import { SIZES } from '../constants/layout';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { GradientButton } from '../components/ui/GradientButton';
 import { BookCover } from '../components/ui/BookCover';
-import { RatingModal } from '../components/ui/RatingModal';
-import { getChapters, reportBook, rateBook, getBookRating } from '../api/books';
+import { getChapters, reportBook, getBookRating } from '../api/books';
 import type { ApiChapterOut } from '../api/books';
 import type { MainStackParamList } from '../types/navigation';
 
@@ -48,7 +47,7 @@ export function StoryDetailScreen() {
     || s.searchResults.find((b) => b.id === paramBook.id)
   );
   const rawBook = storeBook || paramBook;
-  const { likedBookIds, toggleLike, markRated } = useLibraryStore();
+  const { likedBookIds, markRated } = useLibraryStore();
   const progress = useLibraryStore((s) => s.listeningProgress);
   const loadBook = usePlayerStore((s) => s.loadBook);
   const play = usePlayerStore((s) => s.play);
@@ -64,14 +63,12 @@ export function StoryDetailScreen() {
   const book = p ? { ...rawBook, progress: p.percent, currentChapter: p.chapterIndex + 1 } : rawBook;
   const isLiked = likedBookIds.includes(book.id);
 
-  const canRate = usePlayerStore((s) => s.canRate);
   const currentBookId = usePlayerStore((s) => s.currentBook?.id);
   const isThisBookLoaded = currentBookId === book.id;
   const isThisBookPlaying = isThisBookLoaded && isPlaying;
 
   const [chapters, setChapters] = useState<ApiChapterOut[]>([]);
   const [loadingChapters, setLoadingChapters] = useState(true);
-  const [showRatingModal, setShowRatingModal] = useState(false);
   const [userRating, setUserRating] = useState(0);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
@@ -168,7 +165,7 @@ export function StoryDetailScreen() {
         <Text style={[styles.author, { color: t.textSecondary }]}>by {book.author}</Text>
 
         {/* Meta row */}
-        {(hasMetaRow || userRating > 0) && (
+        {hasMetaRow && (
           <View style={styles.metaRow}>
             <View style={styles.statsRow}>
               {!!book.listeners && book.listeners !== '0' && (
@@ -198,35 +195,9 @@ export function StoryDetailScreen() {
                 </View>
               )}
             </View>
-            {userRating > 0 && (
-              <TouchableOpacity
-                onPress={() => canRate && currentBookId === book.id ? setShowRatingModal(true) : undefined}
-                style={[styles.yourRatingBadge, { backgroundColor: t.primarySoft }]}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.yourRatingText, { color: t.primary }]}>Your: {userRating}/5</Text>
-              </TouchableOpacity>
-            )}
           </View>
         )}
 
-        {/* Action Buttons */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            onPress={() => toggleLike(book.id)}
-            style={[styles.actionBtn, { backgroundColor: t.bgCard, borderColor: t.borderSubtle }]}
-            activeOpacity={0.7}
-          >
-            <Feather name="heart" size={18} color={isLiked ? '#FF4444' : t.textSecondary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => { setReportReason(''); setShowReportModal(true); }}
-            style={[styles.actionBtn, { backgroundColor: t.bgCard, borderColor: t.borderSubtle }]}
-            activeOpacity={0.7}
-          >
-            <Feather name="flag" size={18} color={t.textSecondary} />
-          </TouchableOpacity>
-        </View>
 
         {/* Progress (if started) */}
         {book.progress > 0 && (
@@ -331,25 +302,17 @@ export function StoryDetailScreen() {
           })
         )}
 
-      </ScrollView>
+        {/* Report */}
+        <TouchableOpacity
+          onPress={() => { setReportReason(''); setShowReportModal(true); }}
+          style={[styles.reportBtn, { borderColor: t.borderSubtle }]}
+          activeOpacity={0.7}
+        >
+          <Feather name="flag" size={16} color={t.textMuted} />
+          <Text style={[styles.reportBtnText, { color: t.textMuted }]}>Report this book</Text>
+        </TouchableOpacity>
 
-      {/* Rating Modal */}
-      <RatingModal
-        visible={showRatingModal}
-        initialRating={userRating}
-        onClose={() => setShowRatingModal(false)}
-        onRate={(r) => {
-          setShowRatingModal(false);
-          setUserRating(r);
-          markRated(book.id);
-          rateBook(book.id, r).then((res) => {
-            useBookStore.getState().updateBookStats(book.id, {
-              rating: res.average,
-              ratingCount: res.count,
-            });
-          }).catch(() => {});
-        }}
-      />
+      </ScrollView>
 
       {/* Report Modal */}
       <Modal visible={showReportModal} transparent animationType="fade">
@@ -448,20 +411,17 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   matureText: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 1 },
-  actionRow: {
+  reportBtn: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-    marginTop: 16,
-  },
-  actionBtn: {
-    width: 42,
-    height: 42,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    marginTop: 24,
+    paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
   },
+  reportBtnText: { fontSize: 13, fontWeight: '500' },
   content: { flex: 1 },
   contentInner: { padding: 20, paddingTop: 28, paddingBottom: 120 },
   title: { fontSize: 28, fontWeight: '700', lineHeight: 42 },
@@ -476,8 +436,6 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', justifyContent: 'space-between' },
   statItem: { flex: 1, alignItems: 'center', gap: 4 },
   statCount: { fontSize: 12 },
-  yourRatingBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  yourRatingText: { fontSize: 11, fontWeight: '600' },
   tagRow: { flexDirection: 'row', gap: 8, marginTop: 16 },
   genreTag: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
   genreTagText: { fontSize: 11, fontWeight: '600' },

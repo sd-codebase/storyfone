@@ -12,10 +12,9 @@ interface Props {
   book: Book;
   liked: boolean;
   onPress: () => void;
-  onLikePress: () => void;
 }
 
-export function StoryCard({ book, liked, onPress, onLikePress }: Props) {
+export function StoryCard({ book, liked, onPress }: Props) {
   const t = useTheme();
   const rated = useLibraryStore((s) => s.ratedBookIds.includes(book.id));
 
@@ -53,10 +52,10 @@ export function StoryCard({ book, liked, onPress, onLikePress }: Props) {
             </View>
           )}
           {(!!book.likes && book.likes !== '0') && (
-            <TouchableOpacity onPress={onLikePress} style={styles.statItem} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <View style={styles.statItem}>
               <Feather name="heart" size={14} color={liked ? t.primary : t.textMuted} />
               <Text style={[styles.statCount, { color: liked ? t.primary : t.textMuted }]}>{book.likes}</Text>
-            </TouchableOpacity>
+            </View>
           )}
         </View>
         {book.progress > 0 && (
