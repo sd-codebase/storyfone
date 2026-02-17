@@ -28,7 +28,7 @@ export function TrendingCard({ book, rank, onPress }: Props) {
         )}
       </View>
       <Text style={[styles.title, { color: t.text }]} numberOfLines={1}>{book.title}</Text>
-      {!!book.listeners && <Text style={[styles.listeners, { color: t.textMuted }]}>{book.listeners}</Text>}
+      {!!book.listeners && <Text style={[styles.listeners, { color: t.textMuted }]}>{book.listeners} listens</Text>}
     </TouchableOpacity>
   );
 }

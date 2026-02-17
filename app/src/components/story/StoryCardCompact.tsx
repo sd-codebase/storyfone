@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { ProgressBar } from '../ui/ProgressBar';
 import { BookCover } from '../ui/BookCover';
@@ -19,9 +18,6 @@ export function StoryCardCompact({ book, onPress }: Props) {
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={[styles.card, { backgroundColor: t.bgCard, borderColor: t.borderSubtle }]}>
       <View style={styles.coverArea}>
         <BookCover thumbnailUrl={book.thumbnailUrl} title={book.title} size={{ width: 56, height: 56 }} borderRadius={0} />
-        <View style={styles.playBadge}>
-          <Feather name="play" size={10} color="#fff" />
-        </View>
         {book.is_adult && (
           <View style={styles.adultBadge}>
             <EighteenPlus size={28} />
@@ -40,7 +36,6 @@ export function StoryCardCompact({ book, onPress }: Props) {
 const styles = StyleSheet.create({
   card: { width: 190, flexDirection: 'row', borderRadius: 16, overflow: 'hidden', borderWidth: 1 },
   coverArea: { width: 56, height: 56, position: 'relative' },
-  playBadge: { position: 'absolute', bottom: 4, right: 4, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
   adultBadge: { position: 'absolute', top: 4, right: 4 },
   info: { flex: 1, padding: 10, justifyContent: 'center' },
   title: { fontSize: 12, fontWeight: '600', marginBottom: 3 },

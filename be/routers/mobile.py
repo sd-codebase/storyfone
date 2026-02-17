@@ -492,24 +492,10 @@ async def record_listen(
     user: dict = Depends(get_current_app_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    uid = str(user["_id"])
-    # Dedup: check if user has already listened this session (last 30 min)
-    now = datetime.utcnow()
-    recent = await db.listen_events.find_one({
-        "user_id": uid,
-        "book_id": book_id,
-        "created_at": {"$gte": (now - timedelta(minutes=30)).isoformat()},
-    })
-    if not recent:
-        await db.listen_events.insert_one({
-            "user_id": uid,
-            "book_id": book_id,
-            "created_at": now.isoformat(),
-        })
-        await db.books.update_one(
-            {"_id": ObjectId(book_id)},
-            {"$inc": {"listen_count": 1}},
-        )
+    await db.books.update_one(
+        {"_id": ObjectId(book_id)},
+        {"$inc": {"listen_count": 1}},
+    )
     return {"ok": True}
 
 

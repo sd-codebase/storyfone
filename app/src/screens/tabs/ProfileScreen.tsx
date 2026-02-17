@@ -183,9 +183,6 @@ export function ProfileScreen() {
               <Feather name="edit-2" size={14} color={t.textMuted} />
             </TouchableOpacity>
           )}
-          <Text style={[styles.userPlan, { color: t.textSecondary }]}>
-            {user?.plan || 'Premium Member'}
-          </Text>
         </View>
       </View>
 
@@ -380,7 +377,6 @@ const styles = StyleSheet.create({
   nameEditRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   nameInput: { fontSize: 18, fontWeight: '700', borderBottomWidth: 1, paddingVertical: 2, flex: 1 },
   userName: { fontSize: 18, fontWeight: '700' },
-  userPlan: { fontSize: 13, marginTop: 2 },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
   statCard: {
     flex: 1,

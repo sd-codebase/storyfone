@@ -25,7 +25,6 @@ export function useTrackPlayerSync() {
   const accumulatedTime = useRef(0);
   const totalListenTime = useRef(0);
   const lastPosition = useRef(0);
-  const listenRecordedForBook = useRef<string | null>(null);
   const lastProgressSave = useRef(0);
   const restoredRef = useRef(false);
 
@@ -136,14 +135,6 @@ export function useTrackPlayerSync() {
     return () => clearInterval(interval);
   }, []);
 
-  // Record listen count when a book starts playing (once per book load)
-  useEffect(() => {
-    const bookId = usePlayerStore.getState().currentBook?.id;
-    if (playbackState === State.Playing && bookId && listenRecordedForBook.current !== bookId) {
-      listenRecordedForBook.current = bookId;
-      recordListen(bookId).catch(() => {});
-    }
-  }, [playbackState]);
 
   // Sync chapter index on track change
   useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], (event) => {
@@ -191,6 +182,10 @@ export function useTrackPlayerSync() {
         totalListenTime.current = 0;
         lastPosition.current = 0;
         lastProgressSave.current = 0;
+        // Record listen count for the new book
+        if (bookId) {
+          recordListen(bookId).catch(() => {});
+        }
         prevBookIdRef.current = bookId;
       }
     });

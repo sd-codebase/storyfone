@@ -8,6 +8,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useBookStore } from '../../store/bookStore';
 import { useLibraryStore } from '../../store/libraryStore';
+import { usePlayerStore } from '../../store/playerStore';
 import { useAuthStore } from '../../store/authStore';
 import { useLockStore } from '../../store/lockStore';
 import { ProgressBar } from '../../components/ui/ProgressBar';
@@ -27,6 +28,7 @@ export function LibraryScreen() {
   const { isAdult } = useAuthStore();
   const { isUnlocked } = useLockStore();
   const books = useBookStore((s) => s.books);
+  const currentBook = usePlayerStore((s) => s.currentBook);
   const { likedBookIds, toggleLike } = useLibraryStore();
 
   const [activeTab, setActiveTab] = useState<TabId>('listening');
@@ -42,7 +44,7 @@ export function LibraryScreen() {
     return p ? { ...b, progress: p.percent, currentChapter: p.chapterIndex + 1 } : b;
   });
 
-  const continueListening = booksWithProgress.filter((b) => b.progress > 0);
+  const continueListening = booksWithProgress.filter((b) => b.progress > 0 && b.id !== currentBook?.id);
   const likedBooks = booksWithProgress.filter((b) => likedBookIds.includes(b.id));
 
   const tabs: { id: TabId; label: string; icon: string; count: number }[] = [

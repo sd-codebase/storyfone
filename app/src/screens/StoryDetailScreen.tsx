@@ -190,7 +190,7 @@ export function StoryDetailScreen() {
           <View style={styles.metaRow}>
             {book.rating > 0 && <StarRating rating={book.rating} count={book.ratingCount} />}
             {book.rating > 0 && !!book.listeners && <Text style={[styles.metaDot, { color: t.textMuted }]}>&bull;</Text>}
-            {!!book.listeners && <Text style={[styles.metaText, { color: t.textSecondary }]}>{book.listeners} listeners</Text>}
+            {!!book.listeners && <Text style={[styles.metaText, { color: t.textSecondary }]}>{book.listeners} listens</Text>}
             {!!book.listeners && !!book.duration && <Text style={[styles.metaDot, { color: t.textMuted }]}>&bull;</Text>}
             {!!book.duration && <Text style={[styles.metaText, { color: t.textSecondary }]}>{book.duration}</Text>}
             {userRating > 0 && (

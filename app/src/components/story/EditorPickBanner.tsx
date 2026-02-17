@@ -36,7 +36,7 @@ export function EditorPickBanner({ book, onPress }: Props) {
               <View style={styles.statsRow}>
                 {book.rating > 0 && <Text style={styles.stat}>⭐ {book.rating}</Text>}
                 {book.rating > 0 && !!book.listeners && <Text style={styles.dot}>·</Text>}
-                {!!book.listeners && <Text style={styles.stat}>{book.listeners} listeners</Text>}
+                {!!book.listeners && <Text style={styles.stat}>{book.listeners} listens</Text>}
               </View>
             )}
           </View>
