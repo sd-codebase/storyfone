@@ -75,7 +75,8 @@ export async function getEditorPick(languages?: string, includeAdult?: boolean) 
 }
 
 export async function recordListen(bookId: string) {
-  await api.post(ENDPOINTS.books.listen(bookId));
+  const { data } = await api.post<{ ok: boolean; listen_count: number }>(ENDPOINTS.books.listen(bookId));
+  return data;
 }
 
 export async function rateBook(bookId: string, rating: number) {

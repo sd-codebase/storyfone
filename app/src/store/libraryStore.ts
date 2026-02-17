@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import * as libraryApi from '../api/library';
+import { useBookStore, formatCount } from './bookStore';
 import { createUserScopedStorage } from '../utils/userStorage';
 
 interface ListeningProgress {
@@ -13,9 +14,11 @@ interface ListeningProgress {
 
 interface LibraryStore {
   likedBookIds: string[];
+  ratedBookIds: string[];
   listeningProgress: Record<string, ListeningProgress>;
   toggleLike: (bookId: string) => Promise<void>;
   isLiked: (bookId: string) => boolean;
+  markRated: (bookId: string) => void;
   updateProgress: (bookId: string, progress: ListeningProgress) => void;
   syncFromServer: () => Promise<void>;
 }
@@ -24,20 +27,27 @@ export const useLibraryStore = create<LibraryStore>()(
   persist(
     immer((set, get) => ({
       likedBookIds: [],
+      ratedBookIds: [],
       listeningProgress: {},
       toggleLike: async (bookId) => {
         try {
-          const { liked } = await libraryApi.toggleLike(bookId);
+          const { liked, likes_count } = await libraryApi.toggleLike(bookId);
           set((state) => {
             const idx = state.likedBookIds.indexOf(bookId);
             if (liked && idx < 0) state.likedBookIds.push(bookId);
             if (!liked && idx >= 0) state.likedBookIds.splice(idx, 1);
           });
+          useBookStore.getState().updateBookStats(bookId, { likes: formatCount(likes_count) });
         } catch {
           // On failure, don't update — user sees no change
         }
       },
       isLiked: (bookId) => get().likedBookIds.includes(bookId),
+      markRated: (bookId) => {
+        set((state) => {
+          if (!state.ratedBookIds.includes(bookId)) state.ratedBookIds.push(bookId);
+        });
+      },
       updateProgress: (bookId, progress) => {
         set((state) => {
           state.listeningProgress[bookId] = progress;

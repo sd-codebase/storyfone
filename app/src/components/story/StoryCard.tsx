@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
+import { useLibraryStore } from '../../store/libraryStore';
 import { ProgressBar } from '../ui/ProgressBar';
 import { BookCover } from '../ui/BookCover';
 import { EighteenPlus } from '../../icons';
@@ -16,6 +17,7 @@ interface Props {
 
 export function StoryCard({ book, liked, onPress, onLikePress }: Props) {
   const t = useTheme();
+  const rated = useLibraryStore((s) => s.ratedBookIds.includes(book.id));
 
   return (
     <TouchableOpacity
@@ -38,22 +40,22 @@ export function StoryCard({ book, liked, onPress, onLikePress }: Props) {
           {!!book.duration && <Text style={[styles.meta, { color: t.textMuted }]}>{book.duration}</Text>}
         </View>
         <View style={styles.bottomRow}>
-          {!!book.listeners && (
+          {!!book.listeners && book.listeners !== '0' && (
             <View style={styles.statItem}>
-              <Feather name="headphones" size={14} color={t.textMuted} />
-              <Text style={[styles.statCount, { color: t.textMuted }]}>{book.listeners}</Text>
+              <Feather name="headphones" size={14} color={book.progress > 0 ? t.primary : t.textMuted} />
+              <Text style={[styles.statCount, { color: book.progress > 0 ? t.primary : t.textMuted }]}>{book.listeners}</Text>
             </View>
           )}
           {book.rating > 0 && (
             <View style={styles.statItem}>
-              <Feather name="star" size={14} color={t.textMuted} />
-              <Text style={[styles.statCount, { color: t.textMuted }]}>{book.rating.toFixed(1)}</Text>
+              <Feather name="star" size={14} color={rated ? t.primary : t.textMuted} />
+              <Text style={[styles.statCount, { color: rated ? t.primary : t.textMuted }]}>{book.rating.toFixed(1)}</Text>
             </View>
           )}
-          {(!!book.likes || liked) && (
+          {(!!book.likes && book.likes !== '0') && (
             <TouchableOpacity onPress={onLikePress} style={styles.statItem} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Feather name="heart" size={14} color={liked ? t.primary : t.textMuted} />
-              <Text style={[styles.statCount, { color: liked ? t.primary : t.textMuted }]}>{book.likes || 0}</Text>
+              <Text style={[styles.statCount, { color: liked ? t.primary : t.textMuted }]}>{book.likes}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -75,8 +77,8 @@ const styles = StyleSheet.create({
   author: { fontSize: 12, fontStyle: 'italic', marginTop: 3 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   meta: { fontSize: 11 },
-  bottomRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 6 },
-  statItem: { alignItems: 'center', gap: 2 },
+  bottomRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
+  statItem: { flex: 1, alignItems: 'center', gap: 2 },
   statCount: { fontSize: 10 },
   progressWrap: { marginTop: 8 },
 });

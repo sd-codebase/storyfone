@@ -3,7 +3,7 @@ import type { Book, Genre } from '../types/book';
 import * as booksApi from '../api/books';
 import type { ApiBookOut, ApiGenreOut } from '../api/books';
 
-function formatCount(n: number): string {
+export function formatCount(n: number): string {
   if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
   if (n > 0) return String(n);
@@ -60,6 +60,7 @@ interface BookStore {
   fetchMoreBooks: (languages?: string) => Promise<void>;
   fetchTrending: (languages?: string) => Promise<void>;
   fetchEditorPick: (languages?: string, includeAdult?: boolean) => Promise<void>;
+  updateBookStats: (bookId: string, patch: Partial<Pick<Book, 'likes' | 'listeners' | 'rating' | 'ratingCount'>>) => void;
   getVisibleBooks: (isAdult: boolean, isUnlocked: boolean) => Book[];
   getVisibleGenres: (isAdult: boolean, isUnlocked: boolean) => Genre[];
   getVisibleCategories: (isAdult: boolean, isUnlocked: boolean) => string[];
@@ -169,6 +170,18 @@ export const useBookStore = create<BookStore>()((set, get) => ({
     } catch {
       // keep existing
     }
+  },
+  updateBookStats: (bookId, patch) => {
+    const apply = (book: Book) => {
+      if (book.id !== bookId) return book;
+      return { ...book, ...patch };
+    };
+    set((state) => ({
+      books: state.books.map(apply),
+      trendingBooks: state.trendingBooks.map(apply),
+      searchResults: state.searchResults.map(apply),
+      editorPick: state.editorPick?.id === bookId ? apply(state.editorPick) : state.editorPick,
+    }));
   },
   getVisibleBooks: (isAdult, isUnlocked) => {
     const { books, selectedCategory, searchQuery } = get();

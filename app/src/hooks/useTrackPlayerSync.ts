@@ -10,6 +10,7 @@ import { usePlayerStore, buildTracks, loadSession } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { recordListenTime } from '../api/user';
 import { recordListen } from '../api/books';
+import { useBookStore, formatCount } from '../store/bookStore';
 
 const LISTEN_TIME_INTERVAL = 30_000; // 30 seconds
 const PROGRESS_SAVE_INTERVAL = 5_000; // save local progress every 5s
@@ -78,7 +79,7 @@ export function useTrackPlayerSync() {
       lastPosition.current = position;
 
       // Enable rating after 60 seconds (position or accumulated time)
-      if ((position >= 60 || totalListenTime.current >= 60) && !usePlayerStore.getState().canRate) {
+      if ((position >= 30 || totalListenTime.current >= 30) && !usePlayerStore.getState().canRate) {
         usePlayerStore.getState().setCanRate(true);
       }
 
@@ -184,7 +185,9 @@ export function useTrackPlayerSync() {
         lastProgressSave.current = 0;
         // Record listen count for the new book
         if (bookId) {
-          recordListen(bookId).catch(() => {});
+          recordListen(bookId).then((res) => {
+            useBookStore.getState().updateBookStats(bookId, { listeners: formatCount(res.listen_count) });
+          }).catch(() => {});
         }
         prevBookIdRef.current = bookId;
       }

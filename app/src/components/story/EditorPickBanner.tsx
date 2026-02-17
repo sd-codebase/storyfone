@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
+import { useLibraryStore } from '../../store/libraryStore';
 import { BookCover } from '../ui/BookCover';
 import { EighteenPlus } from '../../icons';
 import type { Book } from '../../types/book';
@@ -14,6 +15,9 @@ interface Props {
 
 export function EditorPickBanner({ book, onPress }: Props) {
   const t = useTheme();
+  const liked = useLibraryStore((s) => s.likedBookIds.includes(book.id));
+  const rated = useLibraryStore((s) => s.ratedBookIds.includes(book.id));
+  const listened = book.progress > 0;
   const hasStats = book.rating > 0 || !!book.listeners || !!book.likes;
 
   return (
@@ -35,22 +39,22 @@ export function EditorPickBanner({ book, onPress }: Props) {
             <Text style={styles.author}>by {book.author}</Text>
             {hasStats && (
               <View style={styles.statsRow}>
-                {!!book.listeners && (
+                {!!book.listeners && book.listeners !== '0' && (
                   <View style={styles.statItem}>
-                    <Feather name="headphones" size={14} color="rgba(255,255,255,0.8)" />
-                    <Text style={styles.statCount}>{book.listeners}</Text>
+                    <Feather name="headphones" size={14} color={listened ? '#fff' : 'rgba(255,255,255,0.5)'} />
+                    <Text style={[styles.statCount, listened && styles.statActive]}>{book.listeners}</Text>
                   </View>
                 )}
                 {book.rating > 0 && (
                   <View style={styles.statItem}>
-                    <Feather name="star" size={14} color="rgba(255,255,255,0.8)" />
-                    <Text style={styles.statCount}>{book.rating.toFixed(1)}</Text>
+                    <Feather name="star" size={14} color={rated ? '#fff' : 'rgba(255,255,255,0.5)'} />
+                    <Text style={[styles.statCount, rated && styles.statActive]}>{book.rating.toFixed(1)}</Text>
                   </View>
                 )}
-                {!!book.likes && (
+                {!!book.likes && book.likes !== '0' && (
                   <View style={styles.statItem}>
-                    <Feather name="heart" size={14} color="rgba(255,255,255,0.8)" />
-                    <Text style={styles.statCount}>{book.likes}</Text>
+                    <Feather name="heart" size={14} color={liked ? '#fff' : 'rgba(255,255,255,0.5)'} />
+                    <Text style={[styles.statCount, liked && styles.statActive]}>{book.likes}</Text>
                   </View>
                 )}
               </View>
@@ -70,7 +74,8 @@ const styles = StyleSheet.create({
   info: { flex: 1 },
   title: { fontSize: 22, fontWeight: '700', color: '#fff' },
   author: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontStyle: 'italic', marginTop: 4 },
-  statsRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 8 },
-  statItem: { alignItems: 'center', gap: 2 },
-  statCount: { fontSize: 10, color: 'rgba(255,255,255,0.9)' },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  statItem: { flex: 1, alignItems: 'center', gap: 2 },
+  statCount: { fontSize: 10, color: 'rgba(255,255,255,0.5)' },
+  statActive: { color: '#fff' },
 });

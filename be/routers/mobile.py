@@ -501,11 +501,13 @@ async def record_listen(
     user: dict = Depends(get_current_app_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    await db.books.update_one(
+    result = await db.books.find_one_and_update(
         {"_id": ObjectId(book_id)},
         {"$inc": {"listen_count": 1}},
+        return_document=True,
+        projection={"listen_count": 1},
     )
-    return {"ok": True}
+    return {"ok": True, "listen_count": result.get("listen_count", 0) if result else 0}
 
 
 # --- Rating ---

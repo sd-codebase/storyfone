@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { useLibraryStore } from '../store/libraryStore';
+import { useBookStore, formatCount } from '../store/bookStore';
 import { usePlayerStore } from '../store/playerStore';
 import { SIZES } from '../constants/layout';
 import { ProgressBar } from '../components/ui/ProgressBar';
@@ -41,8 +42,15 @@ export function StoryDetailScreen() {
   const insets = useSafeAreaInsets();
   const nav = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const rawBook = route.params.book;
-  const { likedBookIds, toggleLike } = useLibraryStore();
+  const paramBook = route.params.book;
+  const storeBook = useBookStore((s) =>
+    s.books.find((b) => b.id === paramBook.id)
+    || s.trendingBooks.find((b) => b.id === paramBook.id)
+    || (s.editorPick?.id === paramBook.id ? s.editorPick : null)
+    || s.searchResults.find((b) => b.id === paramBook.id)
+  );
+  const rawBook = storeBook || paramBook;
+  const { likedBookIds, toggleLike, markRated } = useLibraryStore();
   const progress = useLibraryStore((s) => s.listeningProgress);
   const loadBook = usePlayerStore((s) => s.loadBook);
   const play = usePlayerStore((s) => s.play);
@@ -78,7 +86,7 @@ export function StoryDetailScreen() {
 
   useEffect(() => {
     getBookRating(book.id)
-      .then((res) => { if (res.user_rating) setUserRating(res.user_rating); })
+      .then((res) => { if (res.user_rating) { setUserRating(res.user_rating); markRated(book.id); } })
       .catch(() => {});
   }, [book.id]);
 
@@ -188,22 +196,24 @@ export function StoryDetailScreen() {
         {(hasMetaRow || userRating > 0) && (
           <View style={styles.metaRow}>
             <View style={styles.statsRow}>
-              {!!book.listeners && (
+              {!!book.listeners && book.listeners !== '0' && (
                 <View style={styles.statItem}>
-                  <Feather name="headphones" size={18} color={t.textMuted} />
-                  <Text style={[styles.statCount, { color: t.textMuted }]}>{book.listeners}</Text>
+                  <Feather name="headphones" size={18} color={book.progress > 0 ? t.primary : t.textMuted} />
+                  <Text style={[styles.statCount, { color: book.progress > 0 ? t.primary : t.textMuted }]}>{book.listeners}</Text>
                 </View>
               )}
               {book.rating > 0 && (
                 <View style={styles.statItem}>
-                  <Feather name="star" size={18} color={t.textMuted} />
-                  <Text style={[styles.statCount, { color: t.textMuted }]}>{book.rating.toFixed(1)}</Text>
+                  <Feather name="star" size={18} color={userRating > 0 ? t.primary : t.textMuted} />
+                  <Text style={[styles.statCount, { color: userRating > 0 ? t.primary : t.textMuted }]}>
+                    {book.rating.toFixed(1)}{book.ratingCount > 0 ? `(${book.ratingCount})` : ''}
+                  </Text>
                 </View>
               )}
-              {!!book.likes && (
+              {!!book.likes && book.likes !== '0' && (
                 <View style={styles.statItem}>
-                  <Feather name="heart" size={18} color={t.textMuted} />
-                  <Text style={[styles.statCount, { color: t.textMuted }]}>{book.likes}</Text>
+                  <Feather name="heart" size={18} color={isLiked ? t.primary : t.textMuted} />
+                  <Text style={[styles.statCount, { color: isLiked ? t.primary : t.textMuted }]}>{book.likes}</Text>
                 </View>
               )}
               {!!book.duration && (
@@ -380,7 +390,13 @@ export function StoryDetailScreen() {
         onRate={(r) => {
           setShowRatingModal(false);
           setUserRating(r);
-          rateBook(book.id, r).catch(() => {});
+          markRated(book.id);
+          rateBook(book.id, r).then((res) => {
+            useBookStore.getState().updateBookStats(book.id, {
+              rating: res.average,
+              ratingCount: res.count,
+            });
+          }).catch(() => {});
         }}
       />
 
@@ -500,11 +516,14 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '700', lineHeight: 42 },
   author: { fontSize: 14, fontStyle: 'italic', marginTop: 8 },
   metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 16,
     marginTop: 16,
-    gap: 12,
   },
-  statsRow: { flexDirection: 'row', alignItems: 'center', gap: 24 },
-  statItem: { alignItems: 'center', gap: 4 },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  statItem: { flex: 1, alignItems: 'center', gap: 4 },
   statCount: { fontSize: 12 },
   yourRatingBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   yourRatingText: { fontSize: 11, fontWeight: '600' },
