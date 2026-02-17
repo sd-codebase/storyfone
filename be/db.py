@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import logging
+import secrets
+
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 from config import MONGODB_URI, MONGODB_DB
+
+logger = logging.getLogger(__name__)
 
 client: AsyncIOMotorClient = AsyncIOMotorClient(MONGODB_URI)
 database: AsyncIOMotorDatabase = client[MONGODB_DB]
@@ -52,3 +57,12 @@ async def init_db() -> None:
     )
     # User stats
     await database.user_stats.create_index("user_id", unique=True)
+    # Dev seed API key — auto-generate once, never overwrite
+    await database.api_keys.update_one(
+        {"name": "dev_seed"},
+        {"$setOnInsert": {"name": "dev_seed", "key": secrets.token_urlsafe(32)}},
+        upsert=True,
+    )
+    doc = await database.api_keys.find_one({"name": "dev_seed"})
+    if doc:
+        logger.info("Dev seed API key: %s", doc["key"])

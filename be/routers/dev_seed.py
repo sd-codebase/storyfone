@@ -1,21 +1,31 @@
 from __future__ import annotations
 
+import hmac
 import random
 from datetime import datetime, timezone
 from typing import Dict, List, Set
 
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 
-from config import IS_DEV
 from db import get_db
 
-router = APIRouter(prefix="/api/v1/dev", tags=["dev-seed"])
+
+async def verify_dev_api_key(
+    x_dev_api_key: str = Header(default=""),
+) -> None:
+    """Validate the X-Dev-API-Key header against the stored key."""
+    db = get_db()
+    doc = await db.api_keys.find_one({"name": "dev_seed"})
+    if not doc or not hmac.compare_digest(x_dev_api_key, doc["key"]):
+        raise HTTPException(403, "Invalid or missing dev API key")
 
 
-def _require_dev() -> None:
-    if not IS_DEV:
-        raise HTTPException(403, "Dev-only endpoint; not available in production")
+router = APIRouter(
+    prefix="/api/v1/dev",
+    tags=["dev-seed"],
+    dependencies=[Depends(verify_dev_api_key)],
+)
 
 
 # ---------------------------------------------------------------------------
@@ -172,7 +182,6 @@ DESCRIPTION_POOL: List[str] = [d["desc"] for d in BOOK_POOL]
 @router.post("/seed")
 async def seed_mock_data():
     """Create 100 mock books with 5-20 chapters each using real DB entities."""
-    _require_dev()
 
     db = get_db()
 
@@ -277,7 +286,6 @@ async def seed_mock_data():
 @router.delete("/seed")
 async def cleanup_mock_data():
     """Delete all documents tagged with _mock=True."""
-    _require_dev()
 
     db = get_db()
 
