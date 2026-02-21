@@ -14,6 +14,9 @@ from services.tts import generate_speech
 
 router = APIRouter(prefix="/api/v1/dialogue", tags=["dialogue"])
 
+# Public router for serving audio files (no auth required — loaded by HTML5 Audio / WaveSurfer)
+public_router = APIRouter(prefix="/api/v1/dialogue", tags=["dialogue"])
+
 
 @router.post("/process", response_model=ProcessDialogueResponse)
 async def process_dialogue(req: ProcessDialogueRequest):
@@ -66,7 +69,7 @@ async def batch_process(req: BatchProcessRequest):
     return BatchProcessResponse(results=results)
 
 
-@router.get("/tts/{dialogue_id}")
+@public_router.get("/tts/{dialogue_id}")
 async def serve_tts(dialogue_id: str):
     from config import UPLOADS_DIR
     from fastapi.responses import FileResponse

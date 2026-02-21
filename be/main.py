@@ -34,6 +34,11 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(mobile.auth_router)
 
+# Public file-serving routers — no auth (loaded by HTML5 Audio / WaveSurfer)
+app.include_router(dialogue.public_router)
+app.include_router(audio_library.public_router)
+app.include_router(scene_mix.public_router)
+
 # Protected routers — require valid JWT
 protected = [Depends(get_current_user)]
 app.include_router(audio_library.router, dependencies=protected)

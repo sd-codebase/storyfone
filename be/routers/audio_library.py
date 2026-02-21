@@ -20,6 +20,9 @@ from services.audio_store import (
 
 router = APIRouter(prefix="/api/v1/audio", tags=["audio"])
 
+# Public router for serving audio files (no auth — loaded by HTML5 Audio / WaveSurfer)
+public_router = APIRouter(prefix="/api/v1/audio", tags=["audio"])
+
 
 @router.post("/upload", response_model=AudioFileOut)
 async def upload_audio(
@@ -100,7 +103,7 @@ async def get_audio(file_id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
     return _doc_to_out(doc)
 
 
-@router.get("/{file_id}/file")
+@public_router.get("/{file_id}/file")
 async def serve_audio(file_id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
     doc = await db.audio_files.find_one({"_id": file_id})
     if not doc:

@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/mix", tags=["mix"])
 
+# Public router for serving mixed audio files (no auth — loaded by HTML5 Audio)
+public_router = APIRouter(prefix="/api/v1/mix", tags=["mix"])
+
 
 @router.post("", response_model=MixSceneResponse)
 async def create_mix(
@@ -80,7 +83,7 @@ async def create_chapter_mix(
         )
 
 
-@router.get("/chapter/{chapter_id}")
+@public_router.get("/chapter/{chapter_id}")
 async def serve_chapter_mix(chapter_id: str):
     path = UPLOADS_DIR / "mix" / f"chapter_{chapter_id}.wav"
     if not path.exists():
@@ -88,7 +91,7 @@ async def serve_chapter_mix(chapter_id: str):
     return FileResponse(path, media_type="audio/wav", filename=f"chapter_{chapter_id}.wav")
 
 
-@router.get("/{scene_id}")
+@public_router.get("/{scene_id}")
 async def serve_mix(scene_id: str):
     path = UPLOADS_DIR / "mix" / f"{scene_id}.wav"
     if not path.exists():

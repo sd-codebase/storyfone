@@ -8,7 +8,7 @@ import aiofiles
 from google import genai
 from google.genai import types
 
-from config import GEMINI_API_KEY, UPLOADS_DIR
+from config import GEMINI_API_KEY, GEMINI_TTS_MODEL, UPLOADS_DIR
 
 def _get_client() -> genai.Client:
     return genai.Client(api_key=GEMINI_API_KEY)
@@ -72,7 +72,7 @@ async def generate_speech(
         )
 
     response = client.models.generate_content(
-        model="gemini-2.5-flash-preview-tts",
+        model=GEMINI_TTS_MODEL,
         contents=content,
         config=types.GenerateContentConfig(
             response_modalities=["AUDIO"],

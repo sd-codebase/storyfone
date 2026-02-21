@@ -9,6 +9,7 @@ import os
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+GEMINI_TTS_MODEL: str = os.getenv("GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts")
 MONGODB_URI: str = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 MONGODB_DB: str = os.getenv("MONGODB_DB", "story-narration")
 UPLOADS_DIR: Path = Path(os.getenv("UPLOADS_DIR", "./uploads"))
